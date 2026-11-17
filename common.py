@@ -1,9 +1,14 @@
 """Helpers shared by the services: hierarchical location identity, self-registration
-(with heartbeat), location-aware discovery and Prometheus instrumentation."""
+(with heartbeat), location-aware discovery, Prometheus instrumentation and JSON access logs."""
+import json
+import logging
+import logging.handlers
 import os
 import socket
+import sys
 import threading
 import time
+from datetime import datetime, timezone
 
 import requests
 from flask import Response, g, request
@@ -96,6 +101,50 @@ SERVICE_INFO = Gauge("service_info", "Identity and location of this instance",
 
 _KNOWN_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 
+# ------------------------------------------------------------------ access log (for Wazuh)
+# One JSON object per line. ACCESS_LOG=/var/log/ssle/access.log writes a rotating file
+# (what the Wazuh agent reads); unset, it goes to stdout. "srcip" is the field name Wazuh
+# uses for active responses. Paths and user agents are client-controlled, so they are
+# JSON-escaped and truncated. Noisy endpoints are skipped (ACCESS_LOG_SKIP, comma separated).
+ACCESS_LOG = os.getenv("ACCESS_LOG", "")
+ACCESS_LOG_SKIP = {p for p in os.getenv("ACCESS_LOG_SKIP", "/health,/metrics").split(",") if p}
+
+
+def _access_logger():
+    logger = logging.getLogger("ssle.access")
+    if logger.handlers:
+        return logger
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    handler = None
+    if ACCESS_LOG:
+        try:
+            os.makedirs(os.path.dirname(ACCESS_LOG) or ".", exist_ok=True)
+            handler = logging.handlers.RotatingFileHandler(
+                ACCESS_LOG, maxBytes=5_000_000, backupCount=3, delay=True)
+        except OSError as exc:
+            print(f"cannot open access log {ACCESS_LOG}: {exc}; logging to stdout", flush=True)
+    handler = handler or logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+    return logger
+
+
+def _log_access(logger, service_name, resp, elapsed):
+    query = request.query_string.decode("latin-1")
+    logger.info(json.dumps({
+        "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+        "service": service_name,
+        "id": instance_id(service_name),
+        "srcip": request.remote_addr,
+        "method": request.method[:16],
+        "path": (request.path + ("?" + query if query else ""))[:300],
+        "http_status": resp.status_code,
+        "ms": round(elapsed * 1000, 1),
+        "bytes": resp.calculate_content_length() or 0,
+        "ua": request.headers.get("User-Agent", "")[:200],
+    }))
+
 
 def publish_identity(service_name):
     SERVICE_INFO.labels(service=service_name, id=instance_id(service_name), **LOCATION).set(1)
@@ -105,6 +154,7 @@ def instrument(app, service_name):
     """Expose GET /metrics and record request count, latency and in-flight requests.
     The endpoint label is the route pattern, not the URL, so cardinality stays bounded."""
     publish_identity(service_name)
+    access = _access_logger()
 
     @app.route("/metrics", methods=["GET"])
     def metrics():
@@ -120,10 +170,13 @@ def instrument(app, service_name):
     @app.after_request
     def _finish(resp):
         if hasattr(g, "_started"):
+            elapsed = time.perf_counter() - g._started
             endpoint = request.url_rule.rule if request.url_rule else "unmatched"
             method = request.method if request.method in _KNOWN_METHODS else "OTHER"
             HTTP_REQUESTS.labels(service_name, method, endpoint, resp.status_code).inc()
-            HTTP_LATENCY.labels(service_name, method, endpoint).observe(time.perf_counter() - g._started)
+            HTTP_LATENCY.labels(service_name, method, endpoint).observe(elapsed)
+            if request.path not in ACCESS_LOG_SKIP:
+                _log_access(access, service_name, resp, elapsed)
         return resp
 
     @app.teardown_request
