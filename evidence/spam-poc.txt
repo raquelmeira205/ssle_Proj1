@@ -1,0 +1,20 @@
+Email 01: SENT
+Email 02: SENT
+Email 03: SENT
+Email 04: SENT
+Email 05: SENT
+Email 06: SENT
+Email 07: BLOCKED (timed out)
+Email 08: BLOCKED (timed out)
+Email 09: BLOCKED (timed out)
+Email 10: BLOCKED (timed out)
+Email 11: BLOCKED (timed out)
+Email 12: BLOCKED (timed out)
+Email 13: BLOCKED (timed out)
+Email 14: BLOCKED (timed out)
+Email 15: BLOCKED (timed out)
+Email 16: BLOCKED (timed out)
+Email 17: BLOCKED (timed out)
+Email 18: BLOCKED (timed out)
+
+Summary -> Sent: 6, Blocked: 12

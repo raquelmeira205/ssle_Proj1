@@ -1,0 +1,6 @@
+=== 1. Baseline (Normal Traffic) (15.1s) ===
+  Total requests : 14 (OK: 14, Failed/Blocked: 0)
+  Throughput     : 0.92 ok req/s (0.92 total req/s)
+  Latency p50    : 36.32 ms
+  Latency p95    : 50.94 ms
+

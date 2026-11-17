@@ -1,0 +1,116 @@
+──(kali㉿kali)-[~/ssle_Proj1]
+└─$ incus exec DNS-server-container -- systemctl stop wazuh-agent
+{
+  echo "=== CONTROL: Wazuh agent stopped, same hijack ==="
+  ( for i in $(seq 1 40); do echo "$(date +%T.%3N) $(dig +short +time=1 +tries=1 @10.255.255.67 ingestion.ssle.local)"; sleep 0.25; done ) &
+  sleep 3
+  echo "$(date +%T.%3N) >>> HIJACK: writing tampered zone"
+  incus exec DNS-server-container -- sh -c 'echo "10.255.255.42 ingestion.ssle.local" > /etc/dnsmasq-zones/ssle.hosts; systemctl restart dnsmasq'
+  wait
+} | tee ~/ssle_Proj1/evidence/dns-hijack-control.txt
+incus exec DNS-server-container -- sh -c 'cp /etc/dnsmasq.hosts.clean /etc/dnsmasq-zones/ssle.hosts; systemctl restart dnsmasq; systemctl start wazuh-agent'
+=== CONTROL: Wazuh agent stopped, same hijack ===
+16:11:36.568 10.255.255.68
+16:11:36.845 10.255.255.68
+16:11:37.118 10.255.255.68
+16:11:37.385 10.255.255.68
+16:11:37.652 10.255.255.68
+16:11:37.921 10.255.255.68
+16:11:38.270 10.255.255.68
+16:11:38.533 10.255.255.68
+16:11:38.797 10.255.255.68
+16:11:39.062 10.255.255.68
+16:11:39.328 10.255.255.68
+16:11:39.582 >>> HIJACK: writing tampered zone
+16:11:39.602 10.255.255.68
+16:11:39.869 10.255.255.42
+16:11:40.145 10.255.255.42
+16:11:40.422 10.255.255.42
+16:11:40.684 10.255.255.42
+16:11:40.953 10.255.255.42
+16:11:41.222 10.255.255.42
+16:11:41.532 10.255.255.42
+16:11:41.794 10.255.255.42
+16:11:42.074 10.255.255.42
+16:11:42.336 10.255.255.42
+16:11:42.598 10.255.255.42
+16:11:42.863 10.255.255.42
+16:11:43.126 10.255.255.42
+16:11:43.390 10.255.255.42
+16:11:43.684 10.255.255.42
+16:11:43.953 10.255.255.42
+16:11:44.232 10.255.255.42
+16:11:44.495 10.255.255.42
+16:11:44.762 10.255.255.42
+16:11:45.025 10.255.255.42
+16:11:45.287 10.255.255.42
+16:11:45.553 10.255.255.42
+16:11:45.824 10.255.255.42
+16:11:46.092 10.255.255.42
+16:11:46.356 10.255.255.42
+16:11:46.618 10.255.255.42
+16:11:46.881 10.255.255.42
+16:11:47.147 10.255.255.42
+                                                                                                                   
+┌──(kali㉿kali)-[~/ssle_Proj1]
+└─$ >....                                                                                                          
+echo "== 2. Wait for Wazuh Rule 100230 & Active Response to trigger"
+incus exec "$DNS_CONTAINER" -- sh -c "echo '$HIJACK_IP $DOMAIN' > /etc/dnsmasq-zones/ssle.hosts"
+incus exec "$DNS_CONTAINER" -- systemctl restart dnsmasq 2>/dev/null
+
+found=""
+for i in $(seq 1 15); do
+  if incus exec "$WAZUH_CONTAINER" -- grep -q "Rule: 100230" /var/ossec/logs/alerts/alerts.log 2>/dev/null; then
+    found=1
+    break
+  fi     
+  sleep 1
+done
+
+if [ -n "$found" ]; then
+  ok "rule 100230 (DNS Hijacking) fired"
+else
+  bad "rule 100230 did not fire within 15s"
+fi
+
+echo "== 3. Check the active response ran on $DNS_CONTAINER"
+sleep 2
+if incus exec "$DNS_CONTAINER" -- journalctl -t ssle-dns-ar --since "30 seconds ago" --quiet | grep -q "Restored"; then
+  ok "restore-dns active response ran on $DNS_CONTAINER"
+else
+  bad "no active response execution log found in journal"
+fi
+
+echo "== 4. Confirm DNS resolution automatically returned to baseline ($baseline_ip)"
+restored_ip=""
+for i in $(seq 1 10); do
+  restored_ip=$(query_dns)
+  [ "$restored_ip" = "$baseline_ip" ] && break
+  sleep 1
+done
+
+if [ "$restored_ip" = "$baseline_ip" ]; then
+  ok "DNS resolution restored to baseline ($baseline_ip)"
+else
+  bad "DNS resolution still incorrect (resolved to '$restored_ip', expected '$baseline_ip')"
+fi
+
+echo
+echo "Result: $PASS passed, $FAIL failed"
+[ "$FAIL" -eq 0 ]
+EOF
+chmod +x ~/ssle_Proj1/test-dns.sh
+                                                                                                                   
+┌──(kali㉿kali)-[~/ssle_Proj1]
+└─$ ./test-dns.sh | tee ~/ssle_Proj1/evidence/dns-phase3-test.txt
+DNS Server: 10.255.255.67
+== 1. Baseline DNS Resolution
+  PASS  baseline resolution for ingestion.ssle.local succeeds (10.255.255.68)
+== 2. Wait for Wazuh Rule 100230 & Active Response to trigger
+  PASS  rule 100230 (DNS Hijacking) fired
+== 3. Check the active response ran on DNS-server-container
+  PASS  restore-dns active response ran on DNS-server-container
+== 4. Confirm DNS resolution automatically returned to baseline (10.255.255.68)
+  PASS  DNS resolution restored to baseline (10.255.255.68)
+
+Result: 4 passed, 0 failed

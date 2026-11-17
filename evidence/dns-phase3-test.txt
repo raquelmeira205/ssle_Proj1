@@ -1,0 +1,11 @@
+DNS Server: 10.255.255.67
+== 1. Baseline DNS Resolution
+  PASS  baseline resolution for ingestion.ssle.local succeeds (10.255.255.68)
+== 2. Wait for Wazuh Rule 100230 & Active Response to trigger
+  PASS  rule 100230 (DNS Hijacking) fired
+== 3. Check the active response ran on DNS-server-container
+  PASS  restore-dns active response ran on DNS-server-container
+== 4. Confirm DNS resolution automatically returned to baseline (10.255.255.68)
+  PASS  DNS resolution restored to baseline (10.255.255.68)
+
+Result: 4 passed, 0 failed

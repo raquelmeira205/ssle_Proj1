@@ -1,0 +1,6 @@
+=== 3. Legitimate Client During Mitigated Attack (18.0s) ===
+  Total requests : 6 (OK: 0, Failed/Blocked: 6)
+  Throughput     : 0.00 ok req/s (0.33 total req/s)
+  Latency p50    : 2002.67 ms
+  Latency p95    : 2003.01 ms
+

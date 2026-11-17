@@ -1,0 +1,5 @@
+Nov 17 18:43:42 mail-container spamd[458]: spamd: identified spam (1001.8/5.0) for spamd:999 in 0.2 seconds, 362 bytes.
+Nov 17 18:43:42 mail-container spamd[458]: spamd: identified spam (1001.8/5.0) for spamd:999 in 0.1 seconds, 362 bytes.
+Nov 17 18:43:43 mail-container spamd[458]: spamd: identified spam (1001.8/5.0) for spamd:999 in 0.1 seconds, 362 bytes.
+Nov 17 18:43:44 mail-container spamd[458]: spamd: identified spam (1001.8/5.0) for spamd:999 in 0.2 seconds, 362 bytes.
+Nov 17 18:43:44 mail-container spamd[458]: spamd: identified spam (1001.8/5.0) for spamd:999 in 0.1 seconds, 362 bytes.
