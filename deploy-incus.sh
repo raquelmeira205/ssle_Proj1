@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 # Guide 2, section 5.1 - one Incus container per service.
 # Run on the Debian VM (the Incus host), from the folder that contains common.py and the service folders.
+# Location of these containers (country > region > dc > rack > node). Override from the shell, e.g.
+#   DC=dc2 RACK=rack3 ./deploy-incus.sh
 set -euo pipefail
+
+COUNTRY=${COUNTRY:-pt}
+REGION=${REGION:-centro}
+DC=${DC:-dc1}
+RACK=${RACK:-rack1}
+NODE=${NODE:-$(hostname)}
 
 # name:port:entry-script   (the sensor has no port)
 SERVICES=(
@@ -20,7 +28,7 @@ for entry in "${SERVICES[@]}"; do
   until incus exec "$name" -- getent hosts deb.debian.org >/dev/null 2>&1; do sleep 2; done
 
   incus exec "$name" --env DEBIAN_FRONTEND=noninteractive -- sh -c \
-    'apt-get update -qq && apt-get install -y -qq python3-flask python3-requests'
+    'apt-get update -qq && apt-get install -y -qq python3-flask python3-requests python3-prometheus-client'
 
   incus exec "$name" -- mkdir -p /opt/app /var/lib/app
   incus file push common.py "$name/opt/app/common.py"
@@ -42,6 +50,12 @@ Environment=PYTHONPATH=/opt/app
 Environment=REGISTRY_URL=http://registry.incus:5050
 Environment=SERVICE_URL=http://$name.incus:$port
 Environment=DB_PATH=/var/lib/app/temp_data.db
+Environment=COUNTRY=$COUNTRY
+Environment=REGION=$REGION
+Environment=DC=$DC
+Environment=RACK=$RACK
+Environment=NODE=$NODE
+Environment=INSTANCE=01
 
 [Install]
 WantedBy=multi-user.target

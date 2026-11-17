@@ -7,13 +7,17 @@ import os
 
 import requests
 from flask import Flask, jsonify, request
+from prometheus_client import Counter
 
-from common import lookup, register_in_background
+from common import instrument, lookup, register_in_background
 
 PORT = 5003
 SERVICE_NAME = "analytics-service"
 
 app = Flask(__name__)
+instrument(app, SERVICE_NAME)
+
+STORAGE_ERRORS = Counter("analytics_storage_errors_total", "Failed calls from analytics to storage")
 
 
 def fetch_values():
@@ -32,6 +36,7 @@ def average_temp():
     try:
         values = fetch_values()
     except requests.RequestException as e:
+        STORAGE_ERRORS.inc()
         return jsonify({"error": f"storage unavailable: {e}"}), 502
     avg = sum(values) / len(values) if values else None
     return jsonify({"average_temperature": round(avg, 2) if avg is not None else None})
@@ -42,6 +47,7 @@ def stats():
     try:
         values = fetch_values()
     except requests.RequestException as e:
+        STORAGE_ERRORS.inc()
         return jsonify({"error": f"storage unavailable: {e}"}), 502
     if not values:
         return jsonify({"count": 0})

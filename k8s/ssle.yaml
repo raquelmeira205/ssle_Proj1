@@ -5,6 +5,17 @@ kind: Namespace
 metadata:
   name: ssle
 ---
+# Where this deployment lives (country > region > dc > rack). NODE and INSTANCE are injected
+# per pod below. Edit these four values to relabel every service and metric in one place.
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: location, namespace: ssle }
+data:
+  COUNTRY: pt
+  REGION: centro
+  DC: dc1
+  RACK: rack1
+---
 # ---------- registry ----------
 apiVersion: apps/v1
 kind: Deployment
@@ -19,6 +30,10 @@ spec:
         - name: registry
           image: docker.incus:5000/ssle/registry:1.0
           imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: location } }]
+          env:
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
           ports: [{ containerPort: 5050 }]
           readinessProbe: { httpGet: { path: /health, port: 5050 }, periodSeconds: 5 }
 ---
@@ -52,8 +67,11 @@ spec:
         - name: storage
           image: docker.incus:5000/ssle/storage:1.0
           imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: location } }]
           ports: [{ containerPort: 5002 }]
           env:
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: SERVICE_URL, value: "http://storage:5002" }
             - { name: DB_PATH, value: "/data/temp_data.db" }
@@ -84,8 +102,11 @@ spec:
         - name: ingestion
           image: docker.incus:5000/ssle/ingestion:1.0
           imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: location } }]
           ports: [{ containerPort: 5001 }]
           env:
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: SERVICE_URL, value: "http://ingestion:5001" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
@@ -112,8 +133,11 @@ spec:
         - name: analytics
           image: docker.incus:5000/ssle/analytics:1.0
           imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: location } }]
           ports: [{ containerPort: 5003 }]
           env:
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: SERVICE_URL, value: "http://analytics:5003" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
@@ -141,7 +165,10 @@ spec:
         - name: sensor
           image: docker.incus:5000/ssle/sensor:1.0
           imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: location } }]
           env:
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: INGESTION_URL, value: "http://ingestion:5001" }
             - { name: DEVICE_ID, value: "sensor-001" }

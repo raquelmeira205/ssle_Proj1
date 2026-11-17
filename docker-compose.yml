@@ -2,30 +2,40 @@
 # (Do this inside the Incus "docker" container from Guide 2, section 3.4.)
 x-build: &build
   context: .
+# Where everything "lives" (country > region > dc > rack > node). Edit once, applies to all.
+x-location: &location
+  COUNTRY: pt
+  REGION: centro
+  DC: dc1
+  RACK: rack1
+  NODE: node1
 services:
   registry:
     build: { <<: *build, args: { SERVICE: registry, PORT: "5050" } }
     image: ssle/registry
     ports: ["5050:5050"]
+    environment: { <<: *location, INSTANCE: "01" }
   storage:
     build: { <<: *build, args: { SERVICE: storage, PORT: "5002" } }
     image: ssle/storage
-    environment: { REGISTRY_URL: "http://registry:5050", SERVICE_URL: "http://storage:5002" }
+    ports: ["5002:5002"]
+    environment: { <<: *location, INSTANCE: "01", REGISTRY_URL: "http://registry:5050", SERVICE_URL: "http://storage:5002" }
     depends_on: [registry]
   ingestion:
     build: { <<: *build, args: { SERVICE: ingestion, PORT: "5001" } }
     image: ssle/ingestion
     ports: ["5001:5001"]
-    environment: { REGISTRY_URL: "http://registry:5050", SERVICE_URL: "http://ingestion:5001" }
+    environment: { <<: *location, INSTANCE: "01", REGISTRY_URL: "http://registry:5050", SERVICE_URL: "http://ingestion:5001" }
     depends_on: [registry]
   analytics:
     build: { <<: *build, args: { SERVICE: analytics, PORT: "5003" } }
     image: ssle/analytics
     ports: ["5003:5003"]
-    environment: { REGISTRY_URL: "http://registry:5050", SERVICE_URL: "http://analytics:5003" }
+    environment: { <<: *location, INSTANCE: "01", REGISTRY_URL: "http://registry:5050", SERVICE_URL: "http://analytics:5003" }
     depends_on: [registry]
   sensor:
-    build: { <<: *build, args: { SERVICE: sensor } }
+    build: { <<: *build, args: { SERVICE: sensor, PORT: "8000" } }
     image: ssle/sensor
-    environment: { REGISTRY_URL: "http://registry:5050", SENSOR_ID: "temp-01" }
+    ports: ["8000:8000"]          # sensor metrics
+    environment: { <<: *location, INSTANCE: "01", REGISTRY_URL: "http://registry:5050", DEVICE_ID: "temp-01" }
     depends_on: [registry]

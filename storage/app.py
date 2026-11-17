@@ -1,20 +1,38 @@
 """2.4 Storage Service (port 5002): persists temperature readings in SQLite and exposes them via an API."""
 import os
 import sqlite3
+from contextlib import closing
 
 from flask import Flask, jsonify, request
+from prometheus_client import Counter, Gauge
 
-from common import register_in_background
+from common import instrument, register_in_background
 
 PORT = 5002
 SERVICE_NAME = "storage-service"
 DB = os.getenv("DB_PATH", "temp_data.db")
 
 app = Flask(__name__)
+instrument(app, SERVICE_NAME)
+
+STORED = Counter("storage_readings_stored_total", "Readings written to the database")
+REJECTED = Counter("storage_readings_rejected_total", "Store requests rejected as invalid")
+ROWS = Gauge("storage_rows", "Rows currently in the temperatures table")
 
 
 def connect():
     return sqlite3.connect(DB, timeout=10)
+
+
+def count_rows():
+    try:
+        with closing(connect()) as conn:
+            return conn.execute("SELECT COUNT(*) FROM temperatures").fetchone()[0]
+    except sqlite3.Error:
+        return float("nan")
+
+
+ROWS.set_function(count_rows)     # evaluated on every scrape
 
 
 def init_db():
@@ -38,12 +56,14 @@ def store():
     try:
         device_id, temperature = str(data["device_id"]), float(data["temperature"])
     except (KeyError, TypeError, ValueError):
+        REJECTED.inc()
         return jsonify({"error": "device_id and numeric temperature are required"}), 400
     conn = connect()
     c = conn.cursor()
     c.execute("INSERT INTO temperatures (device_id, temperature) VALUES (?, ?)", (device_id, temperature))
     conn.commit()
     conn.close()
+    STORED.inc()
     return jsonify({"status": "stored"}), 200
 
 

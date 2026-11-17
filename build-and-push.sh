@@ -20,7 +20,7 @@ fi
 for svc in registry storage ingestion analytics sensor; do
   case $svc in
     registry) port=5050 ;; storage) port=5002 ;; ingestion) port=5001 ;;
-    analytics) port=5003 ;; *) port=5000 ;;
+    analytics) port=5003 ;; *) port=8000 ;;   # sensor: metrics port
   esac
   docker build --build-arg SERVICE=$svc --build-arg PORT=$port -t $REG/ssle/$svc:$TAG .
   docker push $REG/ssle/$svc:$TAG
