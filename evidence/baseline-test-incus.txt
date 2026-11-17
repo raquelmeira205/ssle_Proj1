@@ -1,0 +1,49 @@
+== 0. Prerequisites
+  PASS  curl is installed
+
+== 1. Registry reachable
+  PASS  registry answers at http://10.255.255.208:5050
+
+== 2. Registry: services and locations
+  PASS  storage-service is registered
+  PASS  ingestion-service is registered
+  PASS  analytics-service is registered
+  PASS  instances have hierarchical IDs (service.node.rack.dc.region.country)
+
+== 3. Registry: location tree
+  PASS  /tree returns the location hierarchy
+
+== 4. Registry: location filter
+  PASS  ?dc=dc1 finds storage-service
+  PASS  ?dc=nope returns 404
+== 5. Data flow: sensor -> ingestion -> storage (waits 20 s)
+  PASS  sensor sent readings (1684.0 -> 1688.0)
+  PASS  ingestion accepted readings (1685.0 -> 1689.0)
+  PASS  storage stored readings (980.0 -> 984.0)
+
+== 6. Input validation
+  PASS  invalid reading rejected with HTTP 400
+
+== 7. Prometheus metrics
+  PASS  ingestion exports service_info (location)
+  PASS  ingestion counts HTTP requests
+  PASS  ingestion accepted readings > 0
+  PASS  ingestion counted the invalid reading
+  PASS  storage_rows > 0
+  PASS  storage_readings_stored_total > 0
+  PASS  storage exports a latency histogram
+  PASS  analytics exports its error counter
+  PASS  registry exports instances per location
+  PASS  sensor sent readings (ok > 0)
+
+== 8. Failure test: stop and restart Incus storage container
+  PASS  registry removed storage-service after storage stopped
+  PASS  analytics answers HTTP 502 while storage is down
+  PASS  analytics_storage_errors_total is 5.0
+  PASS  ingestion counted storage_error readings
+  PASS  Incus storage container start command succeeded
+  PASS  storage-service re-registered after restart
+
+========================================
+Result: 29 passed, 0 failed
+========================================
