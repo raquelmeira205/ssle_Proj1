@@ -1,6 +1,6 @@
-  failure injected        : container storage stopped at 11:21:47
-  root cause identified   : NOT identified
-  symptoms correlated     : 4 Prometheus alerts and 65 Wazuh 5xx events -> 1 root cause
+  failure injected        : container storage stopped at 11:40:12
+  root cause identified   : storage (SSLERootCauseStorageDown)
+  symptoms correlated     : 4 Prometheus alerts and 16 Wazuh 5xx events -> 1 root cause
   limitations             : rules are written per dependency (storage, ingestion); a full dependency graph
                             (or Alertmanager inhibition) would generalise it; the 1 min increase() window
                             delays clearing after recovery.

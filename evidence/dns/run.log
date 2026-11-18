@@ -1,4 +1,4 @@
-Run started 2026-11-18T11:13:14-05:00 on kali
+Run started 2026-11-18T11:36:12-05:00 on kali
 
 ################################################################################
  THREAT: Route / signal hijacking (DNS hijacking)
@@ -11,59 +11,55 @@ Run started 2026-11-18T11:13:14-05:00 on kali
 ################################################################################
 
 == 0. Setup and baseline
-  ....  DNS server DNS-server-container = 10.255.255.68, name under test: ingestion.ssle.local, attacker IP: 10.255.255.42
+  ....  DNS server DNS-server-container = 10.255.255.68, name under test: ingestion.ssle.local, attacker IP: 10.255.255.144
+  PASS  dnsmasq running on DNS-server-container
   PASS  zone matches the golden copy
   PASS  Wazuh agent active on DNS-server-container
-  PASS  baseline: ingestion.ssle.local -> ;; communications error to 10.255.255.68#53: connection refused
+  PASS  baseline: ingestion.ssle.local -> 10.255.255.67
+  PASS  zone is current (ingestion.ssle.local is really at 10.255.255.67)
 
 == 1. Control: same hijack with the Wazuh agent stopped (15 s)
-Job for dnsmasq.service failed because the control process exited with error code.
-See "systemctl status dnsmasq.service" and "journalctl -xeu dnsmasq.service" for details.
-    11:13:16.167 (t-1.99s)  no answer
-    answers: 26 total, 0 pointed to the attacker, 26 failed
-  FAIL  control run did not stay hijacked
-Job for dnsmasq.service failed because the control process exited with error code.
-See "systemctl status dnsmasq.service" and "journalctl -xeu dnsmasq.service" for details.
+    11:36:15.511 (t-1.99s)  10.255.255.67
+    11:36:17.842 (t+0.34s)  10.255.255.144
+    answers: 53 total, 45 pointed to the attacker, 0 failed
+  PASS  without Wazuh the hijack stays in place
   ....  zone restored by hand, agent restarted, waiting 20 s for it to reconnect
 
 == 2. Protected: hijack with Wazuh FIM + restore-dns active response (15 s)
-  ....  hijack: ingestion.ssle.local -> 10.255.255.42
-Job for dnsmasq.service failed because the control process exited with error code.
-See "systemctl status dnsmasq.service" and "journalctl -xeu dnsmasq.service" for details.
-    11:13:58.811 (t-2.00s)  no answer
-    answers: 27 total, 0 pointed to the attacker, 27 failed
+  ....  hijack: ingestion.ssle.local -> 10.255.255.144
+    11:36:57.197 (t-2.00s)  10.255.255.67
+    answers: 54 total, 0 pointed to the attacker, 0 failed
 
 == 2a. Detection (rule 100230)
   PASS  rule 100230 (DNS hijacking) fired
-  2026-11-18T16:14:00.898+0000  rule 100230 (level 12, fired 3 times)
+  2026-11-18T16:36:59.279+0000  rule 100230 (level 12, fired 2 times)
       source : srcip=-
       where  : agent=dns-service-01.kali.rack1.dc1.centro.pt (10.255.255.68)
       what   : SSLE DNS Hijacking detected: /etc/dnsmasq-zones/ssle.hosts was tampered with - restoring clean zone
-  2026-11-18T16:14:00.946+0000  rule 100230 (level 12, fired 4 times)
+  2026-11-18T16:36:59.294+0000  rule 100230 (level 12, fired 3 times)
       source : srcip=-
       where  : agent=dns-service-01.kali.rack1.dc1.centro.pt (10.255.255.68)
       what   : SSLE DNS Hijacking detected: /etc/dnsmasq-zones/ssle.hosts was tampered with - restoring clean zone
 
 == 2b. Response (restore-dns.sh)
-1795018335.361647 DNS-server-container ssle-dns-ar[1643]: Restored /etc/dnsmasq-zones/ssle.hosts after hijacking alert
-1795018441.118923 DNS-server-container ssle-dns-ar[2310]: Restored /etc/dnsmasq-zones/ssle.hosts after hijacking alert
-  PASS  restore-dns ran -105.4 s after the hijack
+1795019819.484654 DNS-server-container ssle-dns-ar[3081]: Restored /etc/dnsmasq-zones/ssle.hosts after hijacking alert
+  PASS  restore-dns ran 0.3 s after the hijack
   PASS  zone file equals the golden copy again
-  FAIL  ingestion.ssle.local resolves to 'no answer' (expected ;; communications error to 10.255.255.68#53: connection refused)
+  PASS  ingestion.ssle.local resolves to 10.255.255.67 again
 
 == 2c. Who received the hijacked answer (dnsmasq query log)
   ....  0 hijacked replies in the dnsmasq log
 
 == Post-mortem summary
   hijack -> first 100230 alert : 0.1 s
-  hijack -> zone restored      : -105.4 s
-  exposure window              : 0.00 s with ingestion.ssle.local -> 10.255.255.42 seen by the client
-  control (no Wazuh)           : still no after 15 s
+  hijack -> zone restored      : 0.3 s
+  exposure window              : 0.00 s with ingestion.ssle.local -> 10.255.255.144 seen by the client
+  control (no Wazuh)           : still 10.255.255.144 after 15 s
   limitations : detects tampering of the zone FILE only (not cache poisoning, rogue DHCP/DNS or
                 on-path spoofing); clients may cache the bad answer for its TTL; an attacker with root
                 on the DNS host can also change the golden copy or stop the agent.
 
 ========================================
-Result: 6 passed, 2 failed
+Result: 10 passed, 0 failed
 Evidence saved in evidence/dns/
 ========================================

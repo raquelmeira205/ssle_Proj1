@@ -3,3 +3,8 @@
     {instance=10.255.255.49:5002,job=ssle-storage} 1
     {instance=10.255.255.68:5001,job=ssle-ingestion} 0
     {instance=10.255.255.26:8000,job=ssle-sensor} 1
+    {instance=sensor.incus:8000,job=ssle-sensor} 1
+    {instance=analytics.incus:5003,job=ssle-analytics} 1
+    {instance=storage.incus:5002,job=ssle-storage} 1
+    {instance=registry.incus:5050,job=ssle-registry} 1
+    {instance=ingestion.incus:5001,job=ssle-ingestion} 1

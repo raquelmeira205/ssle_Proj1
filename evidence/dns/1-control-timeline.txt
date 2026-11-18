@@ -1,4 +1,5 @@
-    11:13:16.167 (t-1.99s)  no answer
-    answers: 26 total, 0 pointed to the attacker, 26 failed
-EXPOSURE 0.00
-FINAL no answer
+    11:36:15.511 (t-1.99s)  10.255.255.67
+    11:36:17.842 (t+0.34s)  10.255.255.144
+    answers: 53 total, 45 pointed to the attacker, 0 failed
+EXPOSURE 12.26
+FINAL 10.255.255.144

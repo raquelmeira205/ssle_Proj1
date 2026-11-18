@@ -1,5 +1,5 @@
 storage errors seen by dependents (1 min):
-    (no data)
-    (no data)
+    {instance=analytics.incus:5003,job=ssle-analytics} 10.908892565589717
+    {instance=ingestion.incus:5001,job=ssle-ingestion,result=storage_error} 6.545454545454545
 registry instances of storage:
     (no data)

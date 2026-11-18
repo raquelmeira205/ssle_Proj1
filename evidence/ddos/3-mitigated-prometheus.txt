@@ -1,12 +1,18 @@
-Prometheus during the 3-mitigated attack (2026-11-18T11:17:11-05:00)
+Prometheus during the 3-mitigated attack (2026-11-18T11:38:42-05:00)
   request rate (req/s):
-    (no data)
+    {job=ssle-analytics} 16.100000000000005
   p95 latency (s):
-    (no data)
+    {job=ssle-analytics} 9.685546875
   requests in progress:
-    (no data)
+    {job=ssle-analytics} 96
   where (service_info):
-    (no data)
+    {country=pt,dc=dc1,id=analytics-service-01.kali.rack1.dc1.centro.pt,instance=analytics.incus:5003,job=ssle-analytics,node=kali,rack=rack1,region=centro,service=analytics-service} 1
   active alerts:
-    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEHighRequestRate              pending  job=ssle-analytics   root_cause=-        since 2026-11-18T16:38:43
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-18T16:38:38
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:38:38
+    SSLEHighConcurrentRequests       firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:38:33
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:35:51
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:35:51
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:37:51
+    SSLERootCauseStorageUnreachable  firing   job=-                root_cause=network-or-discovery since 2026-11-18T16:37:51

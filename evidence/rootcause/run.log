@@ -1,4 +1,4 @@
-Run started 2026-11-18T11:21:47-05:00 on kali
+Run started 2026-11-18T11:40:11-05:00 on kali
 
 ################################################################################
  THREAT: Service failure -> root-cause detection (fault management)
@@ -17,47 +17,51 @@ Run started 2026-11-18T11:21:47-05:00 on kali
     {instance=10.255.255.49:5002,job=ssle-storage} 1
     {instance=10.255.255.68:5001,job=ssle-ingestion} 0
     {instance=10.255.255.26:8000,job=ssle-sensor} 1
+    {instance=sensor.incus:8000,job=ssle-sensor} 1
+    {instance=analytics.incus:5003,job=ssle-analytics} 1
+    {instance=storage.incus:5002,job=ssle-storage} 1
+    {instance=registry.incus:5050,job=ssle-registry} 1
+    {instance=ingestion.incus:5001,job=ssle-ingestion} 1
   FAIL  some targets are already down
-    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:35:51
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:35:51
   PASS  no root-cause alert before the failure
 
 == 1. Failure: stopping container storage
-  FAIL  SSLERootCauseStorageDown did not fire within 120 s
-    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:22:01
-    SSLEStorageNotRegistered         firing   job=-                root_cause=-        since 2026-11-18T16:22:11
+  PASS  SSLERootCauseStorageDown firing 39.4 s after the failure
+    SSLEInstanceDown                 firing   job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:40:16
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:40:16
+    SSLERootCauseStorageDown         firing   job=-                root_cause=storage  since 2026-11-18T16:40:51
+    SSLEStorageNotRegistered         pending  job=-                root_cause=-        since 2026-11-18T16:40:46
   PASS  network/discovery not blamed (correct diagnosis)
   PASS  SSLEInstanceDown points at ssle-storage
 storage errors seen by dependents (1 min):
-    (no data)
-    (no data)
+    {instance=analytics.incus:5003,job=ssle-analytics} 10.908892565589717
+    {instance=ingestion.incus:5001,job=ssle-ingestion,result=storage_error} 6.545454545454545
 registry instances of storage:
     (no data)
   PASS  registry removed the dead storage instance (HTTP 404)
 
 == 1a. SIEM view: HTTP 5xx events per service/location (Wazuh rule 100201)
-  PASS  Wazuh recorded 65 HTTP 5xx events
-      39 x  analytics-service-01.kali.rack1.dc1.centro.pt                /stats
-      26 x  ingestion-service-01.kali.rack1.dc1.centro.pt                /ingest
+  PASS  Wazuh recorded 16 HTTP 5xx events
+      10 x  analytics-service-01.kali.rack1.dc1.centro.pt                /stats
+       6 x  ingestion-service-01.kali.rack1.dc1.centro.pt                /ingest
 
 == 2. Recovery: starting storage
-    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:22:01
-  PASS  root-cause alert cleared 8.6 s after storage restarted
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:40:16
+    SSLERootCauseStorageUnreachable  pending  job=-                root_cause=network-or-discovery since 2026-11-18T16:41:01
+  PASS  root-cause alert cleared 9.0 s after storage restarted
   PASS  storage-service registered again
 
 == Post-mortem summary
-  failure injected        : container storage stopped at 11:21:47
-  root cause identified   : NOT identified
-  symptoms correlated     : 4 Prometheus alerts and 65 Wazuh 5xx events -> 1 root cause
+  failure injected        : container storage stopped at 11:40:12
+  root cause identified   : storage (SSLERootCauseStorageDown)
+  symptoms correlated     : 4 Prometheus alerts and 16 Wazuh 5xx events -> 1 root cause
   limitations             : rules are written per dependency (storage, ingestion); a full dependency graph
                             (or Alertmanager inhibition) would generalise it; the 1 min increase() window
                             delays clearing after recovery.
 
 ========================================
-Result: 7 passed, 2 failed
+Result: 8 passed, 1 failed
 Evidence saved in evidence/rootcause/
 ========================================

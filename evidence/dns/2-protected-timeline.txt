@@ -1,4 +1,4 @@
-    11:13:58.811 (t-2.00s)  no answer
-    answers: 27 total, 0 pointed to the attacker, 27 failed
+    11:36:57.197 (t-2.00s)  10.255.255.67
+    answers: 54 total, 0 pointed to the attacker, 0 failed
 EXPOSURE 0.00
-FINAL no answer
+FINAL 10.255.255.67

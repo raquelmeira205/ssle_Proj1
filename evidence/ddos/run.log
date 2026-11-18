@@ -1,4 +1,4 @@
-Run started 2026-11-18T11:15:06-05:00 on kali
+Run started 2026-11-18T11:37:12-05:00 on kali
 
 ################################################################################
  THREAT: Massive denial-of-service (HTTP flood)
@@ -12,106 +12,113 @@ Run started 2026-11-18T11:15:06-05:00 on kali
 
 == 0. Setup
   ....  target analytics = http://10.255.255.134:5003/stats?limit=1000
-  ....  creating client container attacker1
   ....  attacker1 = 10.255.255.144
-  ....  creating client container attacker2
   ....  attacker2 = 10.255.255.202
-  ....  creating client container legit-client
   ....  legit-client = 10.255.255.156
   PASS  Wazuh agent active on analytics
 
 == 1. Baseline: legitimate client alone (15 s)
-=== Baseline (legitimate client only) (15.4s) ===
+=== Baseline (legitimate client only) (15.7s) ===
   Total requests : 15 (OK: 15, Failed/Blocked: 0)
-  Throughput     : 0.98 ok req/s (0.98 total req/s)
-  Latency p50    : 11.73 ms
-  Latency p95    : 27.35 ms
-RESULT ok=15 failed=0 p50=12 p95=27
+  Throughput     : 0.96 ok req/s (0.96 total req/s)
+  Latency p50    : 11.34 ms
+  Latency p95    : 13.73 ms
+RESULT ok=15 failed=0 p50=11 p95=14
 
   PASS  baseline: every request answered
 
 == 2. Unmitigated attack: 20 workers x 2 attackers, Wazuh agent on analytics stopped
-=== Legitimate client during 2-unmitigated attack (21.0s) ===
+=== Legitimate client during 2-unmitigated attack (21.1s) ===
   Total requests : 7 (OK: 0, Failed/Blocked: 7)
   Throughput     : 0.00 ok req/s (0.33 total req/s)
-  Latency p50    : 2002.95 ms
-  Latency p95    : 2003.73 ms
-RESULT ok=0 failed=7 p50=2003 p95=2004
+  Latency p50    : 2002.71 ms
+  Latency p95    : 2003.02 ms
+RESULT ok=0 failed=7 p50=2003 p95=2003
 
-Prometheus during the 2-unmitigated attack (2026-11-18T11:16:17-05:00)
+Prometheus during the 2-unmitigated attack (2026-11-18T11:37:48-05:00)
   request rate (req/s):
-    (no data)
+    {job=ssle-analytics} 22.1022102210221
   p95 latency (s):
-    (no data)
+    {job=ssle-analytics} 9.317901234567902
   requests in progress:
-    (no data)
+    {job=ssle-analytics} 122
   where (service_info):
-    (no data)
+    {country=pt,dc=dc1,id=analytics-service-01.kali.rack1.dc1.centro.pt,instance=analytics.incus:5003,job=ssle-analytics,node=kali,rack=rack1,region=centro,service=analytics-service} 1
   active alerts:
-    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-18T16:16:13
-    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:35:51
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:35:51
+    SSLERootCauseRequestFlood        firing   job=ssle-storage     root_cause=request-flood since 2026-11-18T16:37:41
+    SSLERootCauseRequestFlood        firing   job=ssle-analytics   root_cause=request-flood since 2026-11-18T16:37:41
+    SSLEHighRequestRate              firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighRequestRate              firing   job=ssle-storage     root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-18T16:37:43
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighP95Latency               firing   job=ssle-storage     root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-18T16:37:43
+    SSLEHighConcurrentRequests       firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:37:38
   PASS  Prometheus raised SSLEHighRequestRate during the attack
   ....  Wazuh agent restarted, waiting 20 s for it to reconnect
 
 == 3. Mitigated attack: same attack with Wazuh detection + firewall-drop
-./test-ddos.sh: line 114: BLOCKED_AT: unbound variable
-=== Legitimate client during 3-mitigated attack (22.0s) ===
-  Total requests : 8 (OK: 1, Failed/Blocked: 7)
-  Throughput     : 0.05 ok req/s (0.36 total req/s)
-  Latency p50    : 2002.66 ms
-  Latency p95    : 2007.28 ms
-RESULT ok=1 failed=7 p50=2003 p95=2007
+=== Legitimate client during 3-mitigated attack (20.9s) ===
+  Total requests : 13 (OK: 10, Failed/Blocked: 3)
+  Throughput     : 0.48 ok req/s (0.62 total req/s)
+  Latency p50    : 9.95 ms
+  Latency p95    : 2002.47 ms
+RESULT ok=10 failed=3 p50=10 p95=2002
 
-Prometheus during the 3-mitigated attack (2026-11-18T11:17:11-05:00)
+Prometheus during the 3-mitigated attack (2026-11-18T11:38:42-05:00)
   request rate (req/s):
-    (no data)
+    {job=ssle-analytics} 16.100000000000005
   p95 latency (s):
-    (no data)
+    {job=ssle-analytics} 9.685546875
   requests in progress:
-    (no data)
+    {job=ssle-analytics} 96
   where (service_info):
-    (no data)
+    {country=pt,dc=dc1,id=analytics-service-01.kali.rack1.dc1.centro.pt,instance=analytics.incus:5003,job=ssle-analytics,node=kali,rack=rack1,region=centro,service=analytics-service} 1
   active alerts:
-    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEHighRequestRate              pending  job=ssle-analytics   root_cause=-        since 2026-11-18T16:38:43
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-18T16:38:38
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:38:38
+    SSLEHighConcurrentRequests       firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:38:33
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:35:51
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:35:51
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:37:51
+    SSLERootCauseStorageUnreachable  firing   job=-                root_cause=network-or-discovery since 2026-11-18T16:37:51
 
 == 3a. Detection (Wazuh rule 100210)
-  2026-11-18T16:17:07.098+0000  rule 652 (level 3, fired 1 times)
-      source : srcip=10.255.255.134
-      where  : agent=storage-service-01.kali.rack1.dc1.centro.pt (10.255.255.49)
-      what   : Host Unblocked by firewall-drop Active Response
-  2026-11-18T16:17:07.684+0000  rule 100210 (level 10, fired 12 times)
-      where  : agent=registry-service-01.kali.rack1.dc1.centro.pt (10.255.255.208)
-      what   : SSLE DDoS detected: high request rate from 10.255.255.134 against registry-service (/services/storage-service?country=pt&region=centro&dc=dc1)
-  2026-11-18T16:17:07.728+0000  rule 100210 (level 10, fired 13 times)
-  2026-11-18T16:17:07.768+0000  rule 100210 (level 10, fired 14 times)
-  2026-11-18T16:17:07.866+0000  rule 652 (level 3, fired 2 times)
-  2026-11-18T16:17:08.685+0000  rule 651 (level 3, fired 12 times)
-      what   : Host Blocked by firewall-drop Active Response
-  2026-11-18T16:17:08.700+0000  rule 651 (level 3, fired 13 times)
-  2026-11-18T16:17:08.714+0000  rule 651 (level 3, fired 14 times)
-  2026-11-18T16:17:09.330+0000  rule 100210 (level 10, fired 15 times)
-      what   : SSLE DDoS detected: high request rate from 10.255.255.134 against storage-service (/temperatures?limit=1000)
-  2026-11-18T16:17:09.404+0000  rule 651 (level 3, fired 15 times)
-  2026-11-18T16:17:10.329+0000  rule 100210 (level 10, fired 16 times)
-  2026-11-18T16:17:10.381+0000  rule 100210 (level 10, fired 17 times)
-  2026-11-18T16:17:11.098+0000  rule 651 (level 3, fired 16 times)
-  2026-11-18T16:17:11.114+0000  rule 651 (level 3, fired 17 times)
-  FAIL  no rule 100210 alert for attacker attacker1 (10.255.255.144)
-  FAIL  no rule 100210 alert for attacker attacker2 (10.255.255.202)
+  2026-11-18T16:38:41.672+0000  rule 100210 (level 10, fired 2 times)
+      source : srcip=10.255.255.202
+      where  : agent=analytics-service-01.kali.rack1.dc1.centro.pt (10.255.255.134)
+      what   : SSLE DDoS detected: high request rate from 10.255.255.202 against analytics-service (/stats?limit=1000)
+  2026-11-18T16:38:43.437+0000  rule 100210 (level 10, fired 3 times)
+      source : srcip=10.255.255.144
+      what   : SSLE DDoS detected: high request rate from 10.255.255.144 against analytics-service (/stats?limit=1000)
+  2026-11-18T16:38:43.468+0000  rule 100210 (level 10, fired 4 times)
+  2026-11-18T16:38:43.508+0000  rule 100210 (level 10, fired 5 times)
+  2026-11-18T16:38:43.664+0000  rule 100210 (level 10, fired 6 times)
+  2026-11-18T16:38:45.384+0000  rule 100210 (level 10, fired 7 times)
+  2026-11-18T16:38:45.442+0000  rule 100210 (level 10, fired 8 times)
+  2026-11-18T16:38:45.457+0000  rule 100210 (level 10, fired 9 times)
+  2026-11-18T16:38:45.485+0000  rule 100210 (level 10, fired 10 times)
+  PASS  rule 100210 fired for attacker attacker1 (10.255.255.144)
+  PASS  rule 100210 fired for attacker attacker2 (10.255.255.202)
   PASS  legitimate client 10.255.255.156 was not flagged
-  ....  time from attack start to first alert: 9.0 s
+  ....  time from attack start to first alert: 12.0 s
+  PASS  155 access-log events from analytics's agent reached the manager
+  PASS  no SSLE service was blocked by another service
 
 == 3b. Response (firewall-drop on analytics)
-Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+Chain INPUT (policy ACCEPT 1792 packets, 12M bytes)
  pkts bytes target     prot opt in     out     source               destination         
-  FAIL  attacker attacker1 (10.255.255.144) was never blocked
-  FAIL  no firewall-drop add for 10.255.255.144 in active-responses.log
-  FAIL  attacker attacker2 (10.255.255.202) was never blocked
-  FAIL  no firewall-drop add for 10.255.255.202 in active-responses.log
+   40  1884 DROP       all  --  *      *       10.255.255.144       0.0.0.0/0           
+  303 14112 DROP       all  --  *      *       10.255.255.202       0.0.0.0/0           
+  PASS  attacker attacker1 (10.255.255.144) blocked 13.8 s after the attack started
+  PASS  active-responses.log shows firewall-drop add for 10.255.255.144
+  PASS  attacker attacker2 (10.255.255.202) blocked 12.4 s after the attack started
+  PASS  active-responses.log shows firewall-drop add for 10.255.255.202
   PASS  legitimate client 10.255.255.156 is not blocked
-  PASS  legitimate success rate improved: 0% unmitigated -> 12% mitigated
+  PASS  legitimate success rate improved: 0% unmitigated -> 77% mitigated
 
 == 4. Recovery: block removed after 60 s (skip with --no-wait)
   PASS  10.255.255.144 unblocked after the timeout
@@ -120,16 +127,16 @@ Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
 
 == Post-mortem summary
   legitimate client                     success   p50 (ms)   p95 (ms)
-  1-baseline                               100%         12         27
-  2-unmitigated                              0%       2003       2004
-  3-mitigated                               12%       2003       2007
-  detection (attack start -> first 100210 alert): 9.0 s
-  time to block attacker1 (10.255.255.144): never s
-  time to block attacker2 (10.255.255.202): never s
+  1-baseline                               100%         11         14
+  2-unmitigated                              0%       2003       2003
+  3-mitigated                               77%         10       2002
+  detection (attack start -> first 100210 alert): 12.0 s
+  time to block attacker1 (10.255.255.144): 13.8 s
+  time to block attacker2 (10.255.255.202): 12.4 s
   false positives (legit client flagged/blocked): no
   limitation: per-source threshold; a flood spread over many IPs below 15 req/10 s each is not detected by 100210
 
 ========================================
-Result: 9 passed, 6 failed
+Result: 17 passed, 0 failed
 Evidence saved in evidence/ddos/
 ========================================

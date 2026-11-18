@@ -1,13 +1,21 @@
-Prometheus during the 2-unmitigated attack (2026-11-18T11:16:17-05:00)
+Prometheus during the 2-unmitigated attack (2026-11-18T11:37:48-05:00)
   request rate (req/s):
-    (no data)
+    {job=ssle-analytics} 22.1022102210221
   p95 latency (s):
-    (no data)
+    {job=ssle-analytics} 9.317901234567902
   requests in progress:
-    (no data)
+    {job=ssle-analytics} 122
   where (service_info):
-    (no data)
+    {country=pt,dc=dc1,id=analytics-service-01.kali.rack1.dc1.centro.pt,instance=analytics.incus:5003,job=ssle-analytics,node=kali,rack=rack1,region=centro,service=analytics-service} 1
   active alerts:
-    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-18T16:16:13
-    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
-    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:35:51
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:35:51
+    SSLERootCauseRequestFlood        firing   job=ssle-storage     root_cause=request-flood since 2026-11-18T16:37:41
+    SSLERootCauseRequestFlood        firing   job=ssle-analytics   root_cause=request-flood since 2026-11-18T16:37:41
+    SSLEHighRequestRate              firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighRequestRate              firing   job=ssle-storage     root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-18T16:37:43
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighP95Latency               firing   job=ssle-storage     root_cause=-        since 2026-11-18T16:37:38
+    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-18T16:37:43
+    SSLEHighConcurrentRequests       firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:37:38
