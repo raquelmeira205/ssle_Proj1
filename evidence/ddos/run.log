@@ -1,0 +1,135 @@
+Run started 2026-11-18T11:15:06-05:00 on kali
+
+################################################################################
+ THREAT: Massive denial-of-service (HTTP flood)
+################################################################################
+ Description   : Many requests per second from one or more sources exhaust the service (CPU, worker threads, SQLite reads).
+ Why relevant  : Analytics /stats reads up to 1000 rows from storage on every call; ingestion is the only entry point for sensor data. Saturating them stops the whole pipeline for every location.
+ Exploitation  : Attackers loop on an expensive, unauthenticated endpoint (/stats?limit=1000) with many parallel connections; no credentials needed.
+ Monitoring    : Wazuh: JSON access log, rule 100200 per request, rule 100210 = 15 requests in 10 s from the same srcip. Prometheus: http_requests_total rate, p95 of http_request_duration_seconds, http_requests_in_progress (alerts SSLEHighRequestRate / SSLEHighP95Latency / SSLEHighConcurrentRequests).
+ Action-resp.  : firewall-drop active response on the attacked agent: iptables DROP of the source IP for 60 s, then automatic unblock.
+################################################################################
+
+== 0. Setup
+  ....  target analytics = http://10.255.255.134:5003/stats?limit=1000
+  ....  creating client container attacker1
+  ....  attacker1 = 10.255.255.144
+  ....  creating client container attacker2
+  ....  attacker2 = 10.255.255.202
+  ....  creating client container legit-client
+  ....  legit-client = 10.255.255.156
+  PASS  Wazuh agent active on analytics
+
+== 1. Baseline: legitimate client alone (15 s)
+=== Baseline (legitimate client only) (15.4s) ===
+  Total requests : 15 (OK: 15, Failed/Blocked: 0)
+  Throughput     : 0.98 ok req/s (0.98 total req/s)
+  Latency p50    : 11.73 ms
+  Latency p95    : 27.35 ms
+RESULT ok=15 failed=0 p50=12 p95=27
+
+  PASS  baseline: every request answered
+
+== 2. Unmitigated attack: 20 workers x 2 attackers, Wazuh agent on analytics stopped
+=== Legitimate client during 2-unmitigated attack (21.0s) ===
+  Total requests : 7 (OK: 0, Failed/Blocked: 7)
+  Throughput     : 0.00 ok req/s (0.33 total req/s)
+  Latency p50    : 2002.95 ms
+  Latency p95    : 2003.73 ms
+RESULT ok=0 failed=7 p50=2003 p95=2004
+
+Prometheus during the 2-unmitigated attack (2026-11-18T11:16:17-05:00)
+  request rate (req/s):
+    (no data)
+  p95 latency (s):
+    (no data)
+  requests in progress:
+    (no data)
+  where (service_info):
+    (no data)
+  active alerts:
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-18T16:16:13
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+  PASS  Prometheus raised SSLEHighRequestRate during the attack
+  ....  Wazuh agent restarted, waiting 20 s for it to reconnect
+
+== 3. Mitigated attack: same attack with Wazuh detection + firewall-drop
+./test-ddos.sh: line 114: BLOCKED_AT: unbound variable
+=== Legitimate client during 3-mitigated attack (22.0s) ===
+  Total requests : 8 (OK: 1, Failed/Blocked: 7)
+  Throughput     : 0.05 ok req/s (0.36 total req/s)
+  Latency p50    : 2002.66 ms
+  Latency p95    : 2007.28 ms
+RESULT ok=1 failed=7 p50=2003 p95=2007
+
+Prometheus during the 3-mitigated attack (2026-11-18T11:17:11-05:00)
+  request rate (req/s):
+    (no data)
+  p95 latency (s):
+    (no data)
+  requests in progress:
+    (no data)
+  where (service_info):
+    (no data)
+  active alerts:
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+
+== 3a. Detection (Wazuh rule 100210)
+  2026-11-18T16:17:07.098+0000  rule 652 (level 3, fired 1 times)
+      source : srcip=10.255.255.134
+      where  : agent=storage-service-01.kali.rack1.dc1.centro.pt (10.255.255.49)
+      what   : Host Unblocked by firewall-drop Active Response
+  2026-11-18T16:17:07.684+0000  rule 100210 (level 10, fired 12 times)
+      where  : agent=registry-service-01.kali.rack1.dc1.centro.pt (10.255.255.208)
+      what   : SSLE DDoS detected: high request rate from 10.255.255.134 against registry-service (/services/storage-service?country=pt&region=centro&dc=dc1)
+  2026-11-18T16:17:07.728+0000  rule 100210 (level 10, fired 13 times)
+  2026-11-18T16:17:07.768+0000  rule 100210 (level 10, fired 14 times)
+  2026-11-18T16:17:07.866+0000  rule 652 (level 3, fired 2 times)
+  2026-11-18T16:17:08.685+0000  rule 651 (level 3, fired 12 times)
+      what   : Host Blocked by firewall-drop Active Response
+  2026-11-18T16:17:08.700+0000  rule 651 (level 3, fired 13 times)
+  2026-11-18T16:17:08.714+0000  rule 651 (level 3, fired 14 times)
+  2026-11-18T16:17:09.330+0000  rule 100210 (level 10, fired 15 times)
+      what   : SSLE DDoS detected: high request rate from 10.255.255.134 against storage-service (/temperatures?limit=1000)
+  2026-11-18T16:17:09.404+0000  rule 651 (level 3, fired 15 times)
+  2026-11-18T16:17:10.329+0000  rule 100210 (level 10, fired 16 times)
+  2026-11-18T16:17:10.381+0000  rule 100210 (level 10, fired 17 times)
+  2026-11-18T16:17:11.098+0000  rule 651 (level 3, fired 16 times)
+  2026-11-18T16:17:11.114+0000  rule 651 (level 3, fired 17 times)
+  FAIL  no rule 100210 alert for attacker attacker1 (10.255.255.144)
+  FAIL  no rule 100210 alert for attacker attacker2 (10.255.255.202)
+  PASS  legitimate client 10.255.255.156 was not flagged
+  ....  time from attack start to first alert: 9.0 s
+
+== 3b. Response (firewall-drop on analytics)
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+  FAIL  attacker attacker1 (10.255.255.144) was never blocked
+  FAIL  no firewall-drop add for 10.255.255.144 in active-responses.log
+  FAIL  attacker attacker2 (10.255.255.202) was never blocked
+  FAIL  no firewall-drop add for 10.255.255.202 in active-responses.log
+  PASS  legitimate client 10.255.255.156 is not blocked
+  PASS  legitimate success rate improved: 0% unmitigated -> 12% mitigated
+
+== 4. Recovery: block removed after 60 s (skip with --no-wait)
+  PASS  10.255.255.144 unblocked after the timeout
+  PASS  10.255.255.202 unblocked after the timeout
+  PASS  attacker1 can reach analytics again
+
+== Post-mortem summary
+  legitimate client                     success   p50 (ms)   p95 (ms)
+  1-baseline                               100%         12         27
+  2-unmitigated                              0%       2003       2004
+  3-mitigated                               12%       2003       2007
+  detection (attack start -> first 100210 alert): 9.0 s
+  time to block attacker1 (10.255.255.144): never s
+  time to block attacker2 (10.255.255.202): never s
+  false positives (legit client flagged/blocked): no
+  limitation: per-source threshold; a flood spread over many IPs below 15 req/10 s each is not detected by 100210
+
+========================================
+Result: 9 passed, 6 failed
+Evidence saved in evidence/ddos/
+========================================

@@ -1,0 +1,7 @@
+  hijack -> first 100230 alert : 0.1 s
+  hijack -> zone restored      : -105.4 s
+  exposure window              : 0.00 s with ingestion.ssle.local -> 10.255.255.42 seen by the client
+  control (no Wazuh)           : still no after 15 s
+  limitations : detects tampering of the zone FILE only (not cache poisoning, rogue DHCP/DNS or
+                on-path spoofing); clients may cache the bad answer for its TTL; an attacker with root
+                on the DNS host can also change the golden copy or stop the agent.

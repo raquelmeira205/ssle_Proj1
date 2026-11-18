@@ -1,0 +1,7 @@
+=== Attacker after unblock (3.1s) ===
+  Total requests : 3 (OK: 3, Failed/Blocked: 0)
+  Throughput     : 0.98 ok req/s (0.98 total req/s)
+  Latency p50    : 21.19 ms
+  Latency p95    : 21.19 ms
+RESULT ok=3 failed=0 p50=21 p95=21
+
