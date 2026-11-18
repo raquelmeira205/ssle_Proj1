@@ -1,0 +1,10 @@
+requests/s per instance:
+    {instance=analytics.incus:5003} 104.8895110488951
+    {instance=analytics-dc2.incus:5003} 105.5894410558944
+requests/s per location (location:http_requests:rate1m):
+    {country=pt,dc=dc1,region=centro,service=analytics-service} 91.08590540589668
+    {country=pt,dc=dc2,region=centro,service=analytics-service} 17.079035819694678
+storage writes/s:
+    {} 0.1999800019998
+storage p95 latency (s):
+    {} 0.01136363636363634

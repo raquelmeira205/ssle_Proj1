@@ -1,19 +1,20 @@
-Nov 18 16:19:40 mail-container postfix/smtpd[1812]: connect from attacker1.incus[10.255.255.144]
-Nov 18 16:19:41 mail-container postfix/smtpd[1812]: 2B0F73AC587: client=attacker1.incus[10.255.255.144]
-Nov 18 16:19:41 mail-container postfix/cleanup[1818]: 2B0F73AC587: message-id=<1795018781790657833@client.test>
-Nov 18 16:19:41 mail-container postfix/qmgr[1769]: 2B0F73AC587: from=<promo@evil.test>, size=428, nrcpt=1 (queue active)
-Nov 18 16:19:41 mail-container spamd[765]: spamd: connection from ::1 [::1]:49410 to port 783, fd 5
-Nov 18 16:19:41 mail-container spamd[765]: spamd: setuid to spamd succeeded
-Nov 18 16:19:41 mail-container spamd[765]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
-Nov 18 16:19:41 mail-container spamd[765]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
-Nov 18 16:19:41 mail-container spamd[765]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
-Nov 18 16:19:41 mail-container spamd[765]: spamd: processing message <1795018781790657833@client.test> for spamd:999
-Nov 18 16:19:42 mail-container spamd[765]: spamd: identified spam (1000.3/5.0) for spamd:999 in 0.2 seconds, 449 bytes.
-Nov 18 16:19:42 mail-container spamd[765]: spamd: result: Y 1000 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,GTUBE,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.2,size=449,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=49410,mid=<1795018781790657833@client.test>,autolearn=no autolearn_force=no
-Nov 18 16:19:42 mail-container postfix/pickup[1768]: 0C1063ACE9F: uid=999 from=<promo@evil.test>
-Nov 18 16:19:42 mail-container postfix/cleanup[1818]: 0C1063ACE9F: message-id=<1795018781790657833@client.test>
-Nov 18 16:19:42 mail-container postfix/cleanup[1818]: 0C1063ACE9F: hold: header X-Spam-Flag: YES from local; from=<promo@evil.test> to=<root@mail-container>: quarantined by SpamAssassin
-Nov 18 16:19:42 mail-container postfix/pipe[1819]: 2B0F73AC587: to=<root@mail-container>, relay=spamassassin, delay=1.2, delays=0.96/0/0/0.21, dsn=2.0.0, status=sent (delivered via spamassassin service)
-Nov 18 16:19:42 mail-container postfix/qmgr[1769]: 2B0F73AC587: removed
-Nov 18 16:19:42 mail-container spamd[316]: prefork: child states: II
-Nov 18 16:19:42 mail-container postfix/smtpd[1812]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Nov 18 17:15:19 mail-container spamd[316]: prefork: child states: II
+Nov 18 17:15:20 mail-container postfix/smtpd[2295]: connect from attacker1.incus[10.255.255.144]
+Nov 18 17:15:21 mail-container postfix/smtpd[2295]: 1A83B3A32B2: client=attacker1.incus[10.255.255.144]
+Nov 18 17:15:21 mail-container postfix/cleanup[2301]: 1A83B3A32B2: message-id=<1795022121728480141@client.test>
+Nov 18 17:15:21 mail-container postfix/qmgr[2170]: 1A83B3A32B2: from=<promo@evil.test>, size=428, nrcpt=1 (queue active)
+Nov 18 17:15:21 mail-container spamd[765]: spamd: connection from ::1 [::1]:35144 to port 783, fd 5
+Nov 18 17:15:21 mail-container spamd[765]: spamd: setuid to spamd succeeded
+Nov 18 17:15:21 mail-container spamd[765]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 18 17:15:21 mail-container spamd[765]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 18 17:15:21 mail-container spamd[765]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 18 17:15:21 mail-container spamd[765]: spamd: processing message <1795022121728480141@client.test> for spamd:999
+Nov 18 17:15:22 mail-container spamd[765]: spamd: identified spam (1000.3/5.0) for spamd:999 in 0.3 seconds, 449 bytes.
+Nov 18 17:15:22 mail-container spamd[765]: spamd: result: Y 1000 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,GTUBE,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.3,size=449,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=35144,mid=<1795022121728480141@client.test>,autolearn=no autolearn_force=no
+Nov 18 17:15:22 mail-container spamd[316]: prefork: child states: II
+Nov 18 17:15:22 mail-container postfix/pickup[2169]: 1EB323ACD86: uid=999 from=<promo@evil.test>
+Nov 18 17:15:22 mail-container postfix/pipe[2302]: 1A83B3A32B2: to=<root@mail-container>, relay=spamassassin, delay=1.3, delays=0.97/0/0/0.35, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 18 17:15:22 mail-container postfix/qmgr[2170]: 1A83B3A32B2: removed
+Nov 18 17:15:22 mail-container postfix/cleanup[2301]: 1EB323ACD86: message-id=<1795022121728480141@client.test>
+Nov 18 17:15:22 mail-container postfix/cleanup[2301]: 1EB323ACD86: hold: header X-Spam-Flag: YES from local; from=<promo@evil.test> to=<root@mail-container>: quarantined by SpamAssassin
+Nov 18 17:15:22 mail-container postfix/smtpd[2295]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5

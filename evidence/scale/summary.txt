@@ -1,0 +1,13 @@
+  service     1 inst req/s 2 inst req/s  speed-up  1 inst p95 ms  2 inst p95 ms
+  ingestion          189.9        184.3     0.97x            199            540
+  analytics          194.3        207.9     1.07x            175            234
+  registry: instances=2000 register_per_s=747 lookup_p50_ms=1.9 lookup_p95_ms=3.4 tree_ms=3.7 all_bytes=403593 dc_bytes=16950 rack_bytes=3449
+  monitoring: raw federation 326515 bytes vs per-location aggregates 2760 bytes
+  reading the numbers:
+   - ingestion writes go to ONE SQLite storage: if the speed-up is well below 2, storage is the
+     bottleneck (compare 'storage writes/s' and storage p95 in evidence/scale/2-ingestion-*)
+   - analytics only reads, so it should scale better until storage reads saturate
+   - the registry is in memory: lookups stay fast, but /services without a filter grows
+     linearly and the health checker pings every instance one by one (O(N) per sweep)
+   - all instances run on one physical host, so 'dc2' is a logical location: absolute
+     numbers are lower bounds, the trends are what matters

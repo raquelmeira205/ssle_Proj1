@@ -1,0 +1,10 @@
+requests/s per instance:
+    {instance=ingestion.incus:5001} 93.3093309330933
+    {instance=ingestion-dc2.incus:5001} 94.5
+requests/s per location (location:http_requests:rate1m):
+    {country=pt,dc=dc1,region=centro,service=ingestion-service} 78.21107172075267
+    {country=pt,dc=dc2,region=centro,service=ingestion-service} 13.156999572709395
+storage writes/s:
+    {} 184.70000000000002
+storage p95 latency (s):
+    {} 0.47589285714285745

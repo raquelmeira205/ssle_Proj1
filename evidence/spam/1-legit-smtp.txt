@@ -13,5 +13,5 @@
 250 2.1.0 Ok
 250 2.1.5 Ok
 354 End data with <CR><LF>.<CR><LF>
-250 2.0.0 Ok: queued as 267A73AC587
+250 2.0.0 Ok: queued as 347EB3ACD86
 221 2.0.0 Bye

@@ -1,0 +1,53 @@
+{
+    "pt": {
+        "children": {
+            "centro": {
+                "children": {
+                    "dc1": {
+                        "children": {
+                            "rack1": {
+                                "children": {
+                                    "kali": {
+                                        "children": {},
+                                        "count": 3,
+                                        "level": "node"
+                                    }
+                                },
+                                "count": 3,
+                                "level": "rack"
+                            }
+                        },
+                        "count": 3,
+                        "level": "dc"
+                    },
+                    "dc2": {
+                        "children": {
+                            "rack1": {
+                                "children": {
+                                    "analytics-dc2": {
+                                        "children": {},
+                                        "count": 1,
+                                        "level": "node"
+                                    },
+                                    "ingestion-dc2": {
+                                        "children": {},
+                                        "count": 1,
+                                        "level": "node"
+                                    }
+                                },
+                                "count": 2,
+                                "level": "rack"
+                            }
+                        },
+                        "count": 2,
+                        "level": "dc"
+                    }
+                },
+                "count": 5,
+                "level": "region"
+            }
+        },
+        "count": 5,
+        "level": "country"
+    }
+}

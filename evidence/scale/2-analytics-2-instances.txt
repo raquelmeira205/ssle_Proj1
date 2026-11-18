@@ -1,0 +1,9 @@
+=== attacker1 -> analytics (2-instances): 8 workers, 2 instance(s), 20.1s ===
+  ok 1394, failed 0, 69.3 ok req/s, p50 110 ms, p95 234 ms
+RESULT ok=1394 failed=0 rps=69.3 p50=110 p95=234
+=== attacker2 -> analytics (2-instances): 8 workers, 2 instance(s), 20.1s ===
+  ok 1392, failed 0, 69.2 ok req/s, p50 106 ms, p95 231 ms
+RESULT ok=1392 failed=0 rps=69.2 p50=106 p95=231
+=== legit-client -> analytics (2-instances): 8 workers, 2 instance(s), 20.0s ===
+  ok 1392, failed 0, 69.4 ok req/s, p50 113 ms, p95 232 ms
+RESULT ok=1392 failed=0 rps=69.4 p50=113 p95=232

@@ -1,0 +1,9 @@
+=== attacker1 -> ingestion (2-instances): 8 workers, 2 instance(s), 20.1s ===
+  ok 1323, failed 0, 65.9 ok req/s, p50 64 ms, p95 406 ms
+RESULT ok=1323 failed=0 rps=65.9 p50=64 p95=406
+=== legit-client -> ingestion (2-instances): 8 workers, 2 instance(s), 20.2s ===
+  ok 1239, failed 0, 61.5 ok req/s, p50 65 ms, p95 517 ms
+RESULT ok=1239 failed=0 rps=61.5 p50=65 p95=517
+=== attacker2 -> ingestion (2-instances): 8 workers, 2 instance(s), 20.3s ===
+  ok 1153, failed 0, 56.9 ok req/s, p50 65 ms, p95 540 ms
+RESULT ok=1153 failed=0 rps=56.9 p50=65 p95=540
