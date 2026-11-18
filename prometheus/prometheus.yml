@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    monitor: 'ssle-monitor'
+
+rule_files:
+  - "ssle_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'ssle-registry'
+    static_configs:
+      - targets: ['10.255.255.208:5050']
+
+  - job_name: 'ssle-ingestion'
+    static_configs:
+      - targets: ['10.255.255.68:5001']
+
+  - job_name: 'ssle-storage'
+    static_configs:
+      - targets: ['10.255.255.49:5002']
+
+  - job_name: 'ssle-analytics'
+    static_configs:
+      - targets: ['10.255.255.133:5003']
+
+  - job_name: 'ssle-sensor'
+    static_configs:
+      - targets: ['10.255.255.26:8000']
