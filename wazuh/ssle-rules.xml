@@ -33,7 +33,7 @@
   <rule id="100200" level="3">
     <decoded_as>json</decoded_as>
     <field name="service">\.+</field>
-    <description>SSLE access log: $(service) $(method) $(path) returned $(status) to $(srcip)</description>
+    <description>SSLE access log: $(service) $(method) $(path) returned $(http_status) to $(srcip)</description>
   </rule>
 
   <!-- a service answered with a client error (bad input, unknown route) -->
@@ -48,6 +48,49 @@
     <if_sid>100200</if_sid>
      <field name="http_status">^5\d\d$</field>
      <description>SSLE: $(service) returned HTTP $(http_status) to $(srcip)</description>
+  </rule>
+
+  <!-- Threat 1: DDoS / HTTP flood from a single source IP (15 requests in 10 s).
+       Active response: firewall-drop for 60 s on the agent that saw it. -->
+  <rule id="100210" level="10" frequency="15" timeframe="10">
+    <if_matched_sid>100200</if_matched_sid>
+    <same_srcip />
+    <description>SSLE DDoS detected: high request rate from $(srcip) against $(service) ($(path))</description>
+    <group>ddos,attack,</group>
+  </rule>
+
+  <!-- Threat 2: Junk Email (SpamAssassin content detection). Alert only, no active response. -->
+  <rule id="100220" level="7">
+    <match>spamd: identified spam</match>
+    <description>SSLE Junk Email: SpamAssassin identified spam message on mail-container</description>
+    <group>ssle,spam,junk_email,</group>
+  </rule>
+
+  <!-- Threat 2: Postfix accepted a message from a client IP (building block for 100222) -->
+  <rule id="100221" level="5">
+    <if_group>postfix</if_group>
+    <match>client=</match>
+    <description>SSLE Mail: Postfix accepted message from $(srcip)</description>
+    <group>ssle,spam,junk_email,</group>
+  </rule>
+
+  <!-- Threat 2: bulk junk email / SMTP flood from a single source IP (10 messages in 30 s).
+       Active response: firewall-drop for 60 s on mail-container. -->
+  <rule id="100222" level="10" frequency="10" timeframe="30">
+    <if_matched_sid>100221</if_matched_sid>
+    <same_srcip />
+    <description>SSLE Junk Email Flood: high mail volume from $(srcip) - blocking sender</description>
+    <group>ssle,spam,junk_email,attack,</group>
+  </rule>
+
+  <!-- Threat 3: DNS hijacking. Rule 550 = syscheck "integrity checksum changed"; the agent on
+       DNS-server-container monitors /etc/dnsmasq-zones in real time.
+       Active response: restore-dns.sh copies /etc/dnsmasq.hosts.clean back and restarts dnsmasq. -->
+  <rule id="100230" level="12">
+    <if_sid>550</if_sid>
+    <match>ssle.hosts</match>
+    <description>SSLE DNS Hijacking detected: /etc/dnsmasq-zones/ssle.hosts was tampered with - restoring clean zone</description>
+    <group>ssle,dns_hijack,attack,</group>
   </rule>
 
 </group>

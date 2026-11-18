@@ -1,0 +1,45 @@
+<!-- Appended to the END of /var/ossec/etc/ossec.conf on the Wazuh manager (wazuh-container).
+     The stock ossec.conf already defines the firewall-drop command; restore-dns is ours and
+     its script lives on the DNS agent: /var/ossec/active-response/bin/restore-dns.sh
+     "local" = run on the agent that generated the alert. -->
+<ossec_config>
+  <!-- stock example: block IPs found in the cybercrime reputation list -->
+  <active-response>
+    <command>firewall-drop</command>
+    <location>local</location>
+    <rules_id>100100</rules_id>
+    <timeout>60</timeout>
+  </active-response>
+
+  <!-- Threat 1: DDoS / HTTP flood -->
+  <active-response>
+    <disabled>no</disabled>
+    <command>firewall-drop</command>
+    <location>local</location>
+    <rules_id>100210</rules_id>
+    <timeout>60</timeout>
+  </active-response>
+
+  <!-- Threat 2: junk email flood -->
+  <active-response>
+    <disabled>no</disabled>
+    <command>firewall-drop</command>
+    <location>local</location>
+    <rules_id>100222</rules_id>
+    <timeout>60</timeout>
+  </active-response>
+
+  <!-- Threat 3: DNS hijacking -->
+  <command>
+    <name>restore-dns</name>
+    <executable>restore-dns.sh</executable>
+    <timeout_allowed>no</timeout_allowed>
+  </command>
+
+  <active-response>
+    <disabled>no</disabled>
+    <command>restore-dns</command>
+    <location>local</location>
+    <rules_id>100230</rules_id>
+  </active-response>
+</ossec_config>
