@@ -58,7 +58,7 @@ smtp() {
     printf "Date: %s\r\nMessage-ID: <%s@client.test>\r\nFrom: <%s>\r\nTo: <%s>\r\nSubject: %s\r\n\r\n%s\r\n.\r\n" \
       "$(date -R)" "$(date +%s%N)" "$0" "$1" "$2" "$3" >&3
     sleep 0.5; send "QUIT"
-    timeout 3 cat <&3' "$2" "$3" "$4" "$5"
+    timeout 3 cat <&3' "$2" "$3" "$4" "$5" 2>/dev/null   # Postfix may hang up first (relay test)
 }
 can_connect() { incus exec "$1" -- timeout 3 bash -c "exec 3<>/dev/tcp/$MAIL_IP/$SMTP_PORT" 2>/dev/null; }
 mlog_mark()   { incus exec "$MAIL" -- sh -c 'wc -l < /var/log/mail.log'; }
@@ -114,7 +114,10 @@ for i in $(seq 1 60); do blocked "$MAIL" "$ATT_IP" && { BLOCKED_AT=$(now); break
 incus exec "$MAIL" -- iptables -L INPUT -n -v > "$EVID/4-iptables-during-block.txt" 2>&1
 wait
 SENT=$(grep -l "^250 2.0.0 Ok: queued" "$EVID"/4-flood-smtp-*.txt 2>/dev/null | wc -l)
-info "flood: $SENT of $COUNT messages accepted before the block"
+# "client=" is logged when Postfix starts a message (after MAIL FROM): these are what rule 100222
+# counts. A session cut by the firewall before the final "250 queued" never delivers anything.
+STARTED=$(mlog_since "$M" | grep -c "client=.*\[$ATT_IP\]")
+info "flood: $STARTED of $COUNT sessions reached Postfix, $SENT completed (the rest were cut by the block mid-transfer)"
 cat "$EVID"/4-flood-smtp-*.txt > "$EVID/4-flood-smtp.txt"; rm -f "$EVID"/4-flood-smtp-*.txt
 
 if wait_alert "$MARK" 100222 20 "\"srcip\":\"$ATT_IP\"" > /dev/null; then ok "rule 100222 (mail flood) fired for $ATT_IP"
@@ -150,7 +153,7 @@ section "Post-mortem summary"
 {
   echo "  spam content : flagged by SpamAssassin -> $(grep -q 'hold: header X-Spam-Flag' "$EVID/2-mail.log" && echo quarantined on hold || echo DELIVERED)"
   echo "  open relay   : $(grep -qi 'Relay access denied' "$EVID/3-relay-smtp.txt" && echo refused || echo ALLOWED)"
-  echo "  flood        : $SENT/$COUNT messages accepted before the block; first 100222 alert after ${DETECT} s;" \
+  echo "  flood        : $STARTED/$COUNT sessions reached Postfix, $SENT completed; first 100222 alert after ${DETECT} s;" \
        "blocked after $([ -n "$BLOCKED_AT" ] && elapsed "$T0" "$BLOCKED_AT" || echo never) s"
   echo "  false positive (legit sender blocked): $(grep -qw "$LEGIT_IP" "$EVID/4-iptables-during-block.txt" && echo yes || echo no)"
   echo "  limitations  : GTUBE is a test signature (real spam needs Bayes/RBL tuning); a spammer that rotates IPs or"

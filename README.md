@@ -57,7 +57,7 @@ rack > node). The same ID is used for:
 ```bash
 ./deploy-incus.sh                   # 1. services
 ./install-wazuh-agents.sh           # 2. Wazuh agents (manager container must exist)
-./apply-configs.sh                  # 3. Wazuh rules, Prometheus rules, mail hardening, restore-dns
+./apply-configs.sh                  # 3. pin IPs, Wazuh rules + service list, Prometheus, mail hardening, DNS zone
 ./test-incus.sh                     # 4. check the base architecture
 ```
 
@@ -86,6 +86,15 @@ The files directly in `evidence/` (`ddos-*.txt`, `spam-*.txt`, `dns-*.txt`,
 
 ## Known limitations
 
+- **Addresses:** Incus assigns IPs by DHCP and they changed after a reboot (services swapped
+  addresses). That broke the Prometheus targets and stopped dnsmasq from starting. Prometheus now
+  scrapes `<container>.incus` names, dnsmasq listens on interfaces, and `apply-configs.sh pin` makes
+  the current addresses permanent. The DNS zone and the Wazuh service list are rebuilt from
+  `incus list`.
+- **DoS, internal traffic:** one `/stats` call makes analytics call the registry and storage. In the
+  first automated run, storage and the registry blocked analytics itself, so the defence caused an
+  outage. Rule 100210 now ignores sources in `etc/lists/ssle-services`. The trade-off: a compromised
+  service flooding another one isn't blocked, and only Prometheus would see it.
 - **DoS:** detection is per source IP. A flood spread over many IPs, each below 15 requests in 10 s,
   isn't caught by 100210. Only the Prometheus rate/latency alerts see it, and they have no automatic
   response. `firewall-drop` only protects the container that raised the alert.

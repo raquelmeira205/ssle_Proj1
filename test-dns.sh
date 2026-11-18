@@ -18,7 +18,7 @@ source "$(dirname "$0")/test-lib.sh"
 
 DNS_CONTAINER=${DNS_CONTAINER:-DNS-server-container}
 DOMAIN=${DOMAIN:-ingestion.ssle.local}
-HIJACK_IP=${HIJACK_IP:-10.255.255.42}
+HIJACK_IP=${HIJACK_IP:-}          # default: attacker1's IP (the "rogue" host), else 10.255.255.42
 ZONE=/etc/dnsmasq-zones/ssle.hosts
 CLEAN=/etc/dnsmasq.hosts.clean
 WATCH_SECS=${WATCH_SECS:-15}
@@ -34,12 +34,21 @@ threat_card "Route / signal hijacking (DNS hijacking)" \
 section "0. Setup and baseline"
 DNS_IP=$(ip_of "$DNS_CONTAINER")
 [ -n "$DNS_IP" ] || { echo "Could not find the IP of '$DNS_CONTAINER'"; exit 1; }
+[ -n "$HIJACK_IP" ] || HIJACK_IP=$(ip_of attacker1)
+HIJACK_IP=${HIJACK_IP:-10.255.255.42}
 info "DNS server $DNS_CONTAINER = $DNS_IP, name under test: $DOMAIN, attacker IP: $HIJACK_IP"
 command -v dig >/dev/null || { echo "dig not installed (apt install dnsutils)"; exit 1; }
+# dig +short prints errors on stdout too, so keep only an IPv4 answer
+resolve() { dig +short +time=1 +tries=1 "@$DNS_IP" "$DOMAIN" 2>/dev/null | grep -E '^[0-9.]+$' | head -1; }
+incus exec "$DNS_CONTAINER" -- systemctl is-active -q dnsmasq && ok "dnsmasq running on $DNS_CONTAINER" \
+  || { bad "dnsmasq is not running on $DNS_CONTAINER (./apply-configs.sh dns)"; finish; exit 1; }
 incus exec "$DNS_CONTAINER" -- cmp -s "$CLEAN" "$ZONE" && ok "zone matches the golden copy" || bad "zone differs from the golden copy before the test"
 incus exec "$DNS_CONTAINER" -- systemctl is-active -q wazuh-agent && ok "Wazuh agent active on $DNS_CONTAINER" || bad "Wazuh agent not active on $DNS_CONTAINER"
-BASELINE=$(dig +short "@$DNS_IP" "$DOMAIN" | head -1)
+BASELINE=$(resolve)
 [ -n "$BASELINE" ] && ok "baseline: $DOMAIN -> $BASELINE" || { bad "baseline resolution failed"; finish; exit 1; }
+REAL=$(ip_of "${DOMAIN%%.*}")
+[ -z "$REAL" ] || { [ "$BASELINE" = "$REAL" ] && ok "zone is current ($DOMAIN is really at $REAL)" \
+  || bad "zone is stale: $DOMAIN -> $BASELINE but the container is at $REAL (./apply-configs.sh dns)"; }
 
 hijack() { incus exec "$DNS_CONTAINER" -- sh -c "sed -i 's/^[0-9.]*\([[:space:]]\+$DOMAIN\)\$/$HIJACK_IP\1/' $ZONE && systemctl restart dnsmasq"; }
 # timeline <seconds> <file>: "epoch answer" every 0.25 s
@@ -105,7 +114,8 @@ DETECT=$([ -n "$FIRST" ] && elapsed "$T_H" "$FIRST" || echo n/a)
 section "2b. Response (restore-dns.sh)"
 incus exec "$DNS_CONTAINER" -- journalctl -t ssle-dns-ar --since "2 min ago" -o short-unix --no-pager > "$EVID/2-restore-journal.txt" 2>&1
 cat "$EVID/2-restore-journal.txt"
-RESTORED_AT=$(grep -m1 Restored "$EVID/2-restore-journal.txt" | cut -d' ' -f1)
+# first restore AFTER this hijack (the journal window can also hold restores of earlier runs)
+RESTORED_AT=$(awk -v t="$T_H" '/Restored/ && $1 + 0 >= t + 0 {print $1; exit}' "$EVID/2-restore-journal.txt")
 [ -n "$RESTORED_AT" ] && ok "restore-dns ran $(elapsed "$T_H" "$RESTORED_AT") s after the hijack" || bad "no restore-dns entry in the journal"
 incus exec "$DNS_CONTAINER" -- cmp -s "$CLEAN" "$ZONE" && ok "zone file equals the golden copy again" || bad "zone file still differs from the golden copy"
 [ "$FINAL" = "$BASELINE" ] && ok "$DOMAIN resolves to $BASELINE again" || bad "$DOMAIN resolves to '$FINAL' (expected $BASELINE)"

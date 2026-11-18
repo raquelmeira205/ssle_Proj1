@@ -44,7 +44,7 @@ TARGET_IP=$(ip_of "$TARGET")
 [ -n "$TARGET_IP" ] || { echo "Could not find the IP of '$TARGET'"; exit 1; }
 URL="http://$TARGET_IP:$PORT$ENDPOINT"
 info "target $TARGET = $URL"
-declare -A IP
+declare -A IP=()
 for c in $ATTACKERS $LEGIT; do
   ensure_client "$c"
   incus file push ddos-poc.py "$c/root/ddos-poc.py" >/dev/null
@@ -106,7 +106,7 @@ AR_LINES=$(incus exec "$TARGET" -- sh -c 'wc -l < /var/ossec/logs/active-respons
 T0=$(now)
 attack 3-mitigated &
 ATTACK_PID=$!
-declare -A BLOCKED_AT
+declare -A BLOCKED_AT=()
 for i in $(seq 1 $((ATTACK_SECS * 2))); do
   for a in $ATTACKERS; do
     [ -z "${BLOCKED_AT[$a]:-}" ] && blocked "$TARGET" "${IP[$a]}" && BLOCKED_AT[$a]=$(now)
@@ -131,6 +131,29 @@ grep -q "\"srcip\":\"$LEGIT_IP\"" "$EVID/3-wazuh-alerts-100210.json" \
 FIRST=$(alert_first_epoch < "$EVID/3-wazuh-alerts-100210.json")
 DETECT=$([ -n "$FIRST" ] && elapsed "$T0" "$FIRST" || echo "n/a")
 info "time from attack start to first alert: ${DETECT} s"
+
+# Pipeline check: if the target's agent ships no access-log events, nothing above can fire.
+N=$(alerts_since "$MARK" 100200 | grep -c "\"name\":\"$TARGET-service")
+if [ "$N" -gt 0 ]; then
+  ok "$N access-log events from $TARGET's agent reached the manager"
+else
+  bad "no access-log events from $TARGET's agent reached the manager"
+  info "manager view: $(incus exec "$WAZUH_CONTAINER" -- /var/ossec/bin/agent_control -l 2>/dev/null | grep -i "$TARGET-service")"
+  info "access log in the agent config:"; incus exec "$TARGET" -- grep -n "access.log" /var/ossec/etc/ossec.conf | sed 's/^/        /'
+  info "agent log:"; incus exec "$TARGET" -- tail -n 8 /var/ossec/logs/ossec.log | sed 's/^/        /'
+fi
+
+# Internal calls are not an attack: no SSLE service may be blocked by another service's agent.
+alerts_since "$MARK" 651 > "$EVID/3-wazuh-alerts-651.json"
+INTERNAL=0
+for s in registry storage ingestion analytics; do
+  sip=$(ip_of "$s"); [ -n "$sip" ] || continue
+  if grep -q "\"srcip\":\"$sip\"" "$EVID/3-wazuh-alerts-651.json"; then
+    bad "service $s ($sip) was blocked by another service's agent (internal traffic treated as an attack)"
+    INTERNAL=1
+  fi
+done
+[ "$INTERNAL" = 0 ] && ok "no SSLE service was blocked by another service"
 
 section "3b. Response (firewall-drop on $TARGET)"
 cat "$EVID/3-iptables-during-block.txt"

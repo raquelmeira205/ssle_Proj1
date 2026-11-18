@@ -60,9 +60,18 @@ ensure_client() {
 alerts_mark() { incus exec "$WAZUH_CONTAINER" -- stat -c %s "$ALERTS_JSON" 2>/dev/null || echo 0; }
 
 # alerts_since <mark> <rule id>: raw JSON alerts of that rule written after <mark>.
+# Filters on rule.id (a plain grep also matches the 651/652 firewall alerts, which embed the
+# original alert, rule id included).
 alerts_since() {
-  incus exec "$WAZUH_CONTAINER" -- sh -c "tail -c +$(( $1 + 1 )) $ALERTS_JSON" 2>/dev/null \
-    | grep "\"id\":\"$2\""
+  incus exec "$WAZUH_CONTAINER" -- sh -c "tail -c +$(( $1 + 1 )) $ALERTS_JSON" 2>/dev/null | python3 -c '
+import sys, json
+for line in sys.stdin:
+    try:
+        if json.loads(line).get("rule", {}).get("id") == sys.argv[1]:
+            sys.stdout.write(line)
+    except ValueError:
+        pass
+' "$2"
 }
 
 # wait_alert <mark> <rule id> <seconds> [grep filter]: poll until a matching alert appears.

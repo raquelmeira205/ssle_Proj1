@@ -3,7 +3,7 @@
 # collect-configs.sh). Each part is validated before the service is restarted.
 # Run on the Incus host (the Kali VM) from the repo root:
 #   ./apply-configs.sh            everything
-#   ./apply-configs.sh wazuh prometheus mail dns agents     only some parts
+#   ./apply-configs.sh pin wazuh prometheus mail dns agents     only some parts
 #
 # Container names can be overridden: WAZUH=... PROM=... MAIL=... DNS=...
 #   SERVICES="registry storage ingestion analytics"   containers whose agent reads the access log
@@ -14,14 +14,44 @@ PROM=${PROM:-prometheus-container}
 MAIL=${MAIL:-mail-container}
 DNS=${DNS:-DNS-server-container}
 SERVICES=${SERVICES:-"registry storage ingestion analytics"}
-PARTS=${*:-"wazuh prometheus mail dns agents"}
+# every container of the lab whose address should never change (see the "pin" part)
+LAB=${LAB:-"registry storage ingestion analytics sensor $WAZUH $PROM $MAIL $DNS"}
+PARTS=${*:-"pin wazuh prometheus mail dns agents"}
 ERR=0
 step() { echo; echo "== $1"; }
 fail() { echo "  FAILED: $1"; ERR=$((ERR + 1)); }
+ip_of() { incus list "^$1\$" -c4 --format csv 2>/dev/null | grep -oE '^[0-9.]+' | head -1; }
 
 for part in $PARTS; do case $part in
 
+pin)
+  # Incus hands out addresses by DHCP, and after a reboot containers can swap addresses
+  # (analytics got mail's old IP, the DNS server got ingestion's). Wazuh agents, the DNS zone and
+  # firewall rules all refer to IPs, so make the CURRENT address of each container permanent.
+  step "Pin the current IPv4 of every lab container"
+  for c in $LAB; do
+    ip=$(ip_of "$c")
+    [ -n "$ip" ] || { echo "  $c: not running, skipped"; continue; }
+    if incus config device get "$c" eth0 ipv4.address >/dev/null 2>&1; then
+      incus config device set "$c" eth0 ipv4.address="$ip"
+    else
+      incus config device override "$c" eth0 ipv4.address="$ip" >/dev/null
+    fi && echo "  $c = $ip (pinned)"
+  done
+  ;;
+
 wazuh)
+  # Rule 100210 ignores requests coming FROM the SSLE services themselves: one /stats call makes
+  # analytics query the registry and storage, so during a flood storage and the registry blocked
+  # analytics' IP and the pipeline broke itself. The list is rebuilt from the current IPs.
+  step "Wazuh CDB list etc/lists/ssle-services (internal service IPs)"
+  list=""
+  for c in $SERVICES sensor; do ip=$(ip_of "$c"); [ -n "$ip" ] && list="$list$ip:$c\n" && echo "  $ip  $c"; done
+  printf "$list" | incus exec "$WAZUH" -- sh -c 'cat > /var/ossec/etc/lists/ssle-services'
+  incus exec "$WAZUH" -- chown wazuh:wazuh /var/ossec/etc/lists/ssle-services
+  incus exec "$WAZUH" -- grep -q "etc/lists/ssle-services" /var/ossec/etc/ossec.conf \
+    || incus exec "$WAZUH" -- sed -i '0,/<ruleset>/s#<ruleset>#<ruleset>\n    <list>etc/lists/ssle-services</list>#' /var/ossec/etc/ossec.conf
+
   step "Wazuh manager rules -> $WAZUH:/var/ossec/etc/rules/local_rules.xml"
   incus exec "$WAZUH" -- cp /var/ossec/etc/rules/local_rules.xml /var/ossec/etc/rules/local_rules.xml.bak
   incus file push wazuh/ssle-rules.xml "$WAZUH/var/ossec/etc/rules/local_rules.xml"
@@ -66,6 +96,27 @@ dns)
   incus file push wazuh/active-response/restore-dns.sh "$DNS/var/ossec/active-response/bin/restore-dns.sh"
   incus exec "$DNS" -- chown root:wazuh /var/ossec/active-response/bin/restore-dns.sh
   incus exec "$DNS" -- chmod 750 /var/ossec/active-response/bin/restore-dns.sh && echo "  ok"
+
+  # The zone holds the real service IPs, so it is rebuilt from `incus list`. The golden copy is
+  # written FIRST: the zone change then fires FIM/rule 100230 (an expected alert for a legitimate
+  # change), and restore-dns.sh sees zone == golden copy and does nothing.
+  step "dnsmasq config + ssle.local zone (from the current container IPs) -> $DNS"
+  zone=""
+  for entry in registry:registry ingestion:ingestion storage:storage analytics:analytics "$MAIL:mail"; do
+    c=${entry%%:*}; name=${entry##*:}; ip=$(ip_of "$c")
+    [ -n "$ip" ] && zone="$zone$(printf '%-15s %s.ssle.local' "$ip" "$name")\n" || echo "  WARNING: $c has no IP, $name.ssle.local left out"
+  done
+  printf "$zone" > dns/dnsmasq.hosts.clean
+  cp dns/dnsmasq.hosts.clean dns/dnsmasq-zones/ssle.hosts
+  sed 's/^/    /' dns/dnsmasq.hosts.clean
+  incus file push dns/dnsmasq.conf "$DNS/etc/dnsmasq.conf"
+  incus file push dns/dnsmasq.hosts.clean "$DNS/etc/dnsmasq.hosts.clean"
+  incus file push dns/dnsmasq-zones/ssle.hosts "$DNS/etc/dnsmasq-zones/ssle.hosts"
+  if incus exec "$DNS" -- dnsmasq --test && incus exec "$DNS" -- systemctl restart dnsmasq; then
+    echo "  ok, dnsmasq restarted"
+  else
+    fail "dnsmasq does not start (journalctl -u dnsmasq in $DNS)"
+  fi
   ;;
 
 agents)
@@ -93,7 +144,7 @@ sys.stdout.write(block.sub(keep_first, text))
   done
   ;;
 
-*) echo "unknown part '$part' (wazuh prometheus mail dns agents)"; ERR=$((ERR + 1)) ;;
+*) echo "unknown part '$part' (pin wazuh prometheus mail dns agents)"; ERR=$((ERR + 1)) ;;
 esac; done
 
 echo
