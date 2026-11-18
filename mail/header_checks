@@ -1,0 +1,8 @@
+# /etc/postfix/header_checks (SSLE): quarantine spam instead of delivering it.
+# The spamassassin pipe re-injects every message with X-Spam-Flag: YES when the score is >= 5.0;
+# Postfix cleanup then moves it to the hold queue. Postfix logs "hold: header X-Spam-Flag: YES",
+# which Wazuh rule 100223 turns into an alert.
+#   list quarantined mail : postqueue -j | grep '"queue_name": "hold"'   (or mailq)
+#   release one           : postsuper -H <queue id>
+#   delete one            : postsuper -d <queue id> hold
+/^X-Spam-Flag:[[:space:]]*YES/    HOLD quarantined by SpamAssassin

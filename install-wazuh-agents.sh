@@ -64,7 +64,9 @@ for entry in "${SERVICES[@]}"; do
 
   # the sensor has no HTTP API, so it has no access log to read
   if [ "$name" != "sensor" ]; then
-    incus exec "$name" -- sh -c "grep -q '$ACCESS_LOG' $OSSEC || sed -i 's#</ossec_config>#  <localfile>\n    <log_format>json</log_format>\n    <location>$ACCESS_LOG</location>\n  </localfile>\n</ossec_config>#' $OSSEC"
+    # Append a separate <ossec_config> block. (A sed on </ossec_config> would insert it into
+    # every block of the stock file, so the agent would list the same log twice.)
+    incus exec "$name" -- sh -c "grep -q '$ACCESS_LOG' $OSSEC || printf '\n<ossec_config>\n  <localfile>\n    <log_format>json</log_format>\n    <location>$ACCESS_LOG</location>\n  </localfile>\n</ossec_config>\n' >> $OSSEC"
   fi
 
   incus exec "$name" -- systemctl daemon-reload

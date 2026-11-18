@@ -1,99 +1,160 @@
 #!/usr/bin/env bash
-# Threat 2 - Junk email:
-#   A) spam content detection (rule 100220, SpamAssassin/GTUBE, no response)
-#   B) mail volume flood from one source (rule 100222: 10 in 30s) + firewall-drop
+# Threat 2 - Junk email against the SSLE mail server (mail-container: Postfix + SpamAssassin).
 #
-# Run from the Incus host (e.g. the Kali VM), NOT from inside mail-container,
-# so Postfix logs a real, blockable client IP for part B.
+# Phases (saved under evidence/spam/):
+#   1. baseline      a legitimate message from legit-client is delivered
+#   2. spam content  a GTUBE message: SpamAssassin flags it (rule 100220) and Postfix
+#                    quarantines it on HOLD (mail/header_checks, rule 100223) - not delivered
+#   3. open relay    a lab host tries to relay to an outside domain: must be refused
+#   4. flood         many messages from one source: rule 100222 (10 in 30 s) -> firewall-drop
+#                    of that IP for 60 s, while legit-client can still send
+#   5. recovery      the flooding IP is unblocked after the timeout
 #
-#   MAIL=mail-container   SMTP_PORT=25
-#   COUNT=12               messages fired in the burst (rule needs 10 in 30s)
-#   ./test-spam.sh --no-wait   skip the 60s unblock check at the end
+# Needs the hardening in mail/ (apply-configs.sh) for phases 2 and 3.
+# Run on the Incus host from the repo root:   ./test-spam.sh  [--no-wait]
+#   MAIL=mail-container SMTP_PORT=25 ATTACKER=attacker1 LEGIT=legit-client COUNT=12
 set -u
+source "$(dirname "$0")/test-lib.sh"
+
 MAIL=${MAIL:-mail-container}
 SMTP_PORT=${SMTP_PORT:-25}
+ATTACKER=${ATTACKER:-attacker1}
+LEGIT=${LEGIT:-legit-client}
 COUNT=${COUNT:-12}
-WAZUH_CONTAINER=${WAZUH_CONTAINER:-wazuh-container}
+RCPT=${RCPT:-root@mail-container}
+BLOCK_SECS=60
 GTUBE='XJS*C4JDBQADN1.NSBN3*2IDNEN*GTUBE-STANDARD-ANTI-UBE-TEST-EMAIL*C.34X'
 
-PASS=0; FAIL=0
-ok()  { echo "  PASS  $1"; PASS=$((PASS + 1)); }
-bad() { echo "  FAIL  $1"; FAIL=$((FAIL + 1)); }
+start_evidence spam
+threat_card "Junk email (spam content and bulk mail flood)" \
+  "Unsolicited bulk mail: spam/phishing content, and high-volume sending from one source." \
+  "The mail server is how operators get alerts and talk to users; spam is the main carrier of phishing/fraud, and a flood fills the queue, the disk and the spamd workers." \
+  "Anyone who can reach port 25 can submit mail (no authentication for local recipients); before the hardening the whole lab /24 was trusted and could relay." \
+  "Wazuh reads /var/log/mail.log: 100220 spamd 'identified spam', 100223 Postfix 'hold' (quarantine), 100221 accepted message per client IP, 100222 = 10 messages in 30 s from the same srcip." \
+  "Spam content: quarantined in the Postfix hold queue (header_checks). Flood: firewall-drop of the sender IP for ${BLOCK_SECS} s. Relay: refused by Postfix (mynetworks = localhost only)."
 
-IP=$(incus list "$MAIL" -c4 --format csv 2>/dev/null | cut -d' ' -f1)
-[ -n "$IP" ] || { echo "Could not find the IP of container '$MAIL' (is it running?)"; exit 1; }
-echo "Mail server: $IP:$SMTP_PORT"
-
-# One raw SMTP dialogue over TCP. $1 = envelope-from. No external tool needed.
-send_one() {
-  local from="$1"
-  timeout 6 bash -c "
-    exec 3<>/dev/tcp/$IP/$SMTP_PORT
-    printf 'EHLO test.local\r\nMAIL FROM:<%s>\r\nRCPT TO:<root@mail-container>\r\nDATA\r\nSubject: test\r\n\r\n%s\r\n.\r\nQUIT\r\n' '$from' '$GTUBE' >&3
-    cat <&3 >/dev/null
-  " 2>/dev/null
-}
-
-echo "== 1. Baseline: can we reach port $SMTP_PORT?"
-if timeout 3 bash -c "exec 3<>/dev/tcp/$IP/$SMTP_PORT" 2>/dev/null; then
-  ok "SMTP port is open"
-else
-  bad "cannot connect to $IP:$SMTP_PORT"
-  echo; echo "Result: $PASS passed, $FAIL failed"; exit 1
-fi
-
-echo "== 2. Send one GTUBE test message (spam content detection)"
-send_one "test-single@evil.test"
-sleep 3
-if incus exec "$WAZUH_CONTAINER" -- grep -q "Rule: 100220" /var/ossec/logs/alerts/alerts.log 2>/dev/null; then
-  ok "rule 100220 fired (SpamAssassin identified spam)"
-else
-  bad "rule 100220 did not fire"
-fi
-
-echo "== 3. Send $COUNT messages quickly (mail flood from one source)"
-start=$(date +%s)
-for i in $(seq 1 "$COUNT"); do send_one "flood$i@evil.test" & done
-wait
-elapsed=$(( $(date +%s) - start ))
-echo "    sent $COUNT messages in about ${elapsed}s"
-if [ "$elapsed" -le 30 ]; then ok "burst completed within the rule's 30s window"; else bad "burst took ${elapsed}s (rule window is 30s)"; fi
-
-echo "== 4. Wait for rule 100222 (mail flood) to fire (up to 20s)"
-found=""
-for i in $(seq 1 20); do
-  incus exec "$WAZUH_CONTAINER" -- grep -q "Rule: 100222" /var/ossec/logs/alerts/alerts.log 2>/dev/null && { found=1; break; }
-  sleep 1
+section "0. Setup"
+MAIL_IP=$(ip_of "$MAIL")
+[ -n "$MAIL_IP" ] || { echo "Could not find the IP of '$MAIL'"; exit 1; }
+info "mail server $MAIL = $MAIL_IP:$SMTP_PORT"
+ensure_client "$ATTACKER"; ensure_client "$LEGIT"
+ATT_IP=$(ip_of "$ATTACKER"); LEGIT_IP=$(ip_of "$LEGIT")
+info "attacker $ATTACKER = $ATT_IP, legitimate sender $LEGIT = $LEGIT_IP"
+for ip in "$ATT_IP" "$LEGIT_IP"; do
+  for i in $(seq 1 70); do blocked "$MAIL" "$ip" || break; [ "$i" = 1 ] && info "$ip still blocked from a previous run, waiting"; sleep 1; done
 done
-if [ -n "$found" ]; then ok "rule 100222 fired (mail flood)"; else bad "rule 100222 did not fire within 20s"; fi
+incus exec "$MAIL" -- postconf -h mynetworks > "$EVID/0-postfix-mynetworks.txt"
+incus exec "$MAIL" -- postconf -h header_checks > "$EVID/0-postfix-header_checks.txt" 2>&1
+info "mynetworks = $(cat "$EVID/0-postfix-mynetworks.txt")"
+info "header_checks = $(cat "$EVID/0-postfix-header_checks.txt")"
 
-echo "== 5. Check the active response ran on $MAIL"
-sleep 3
-if incus exec "$MAIL" -- grep -q "firewall-drop" /var/ossec/logs/active-responses.log 2>/dev/null; then
-  ok "firewall-drop ran on $MAIL"
-else
-  bad "no firewall-drop entry in $MAIL's active-responses.log"
+# smtp <container> <from> <to> <subject> <body>: one SMTP dialogue, prints the server's replies
+smtp() {
+  incus exec "$1" -- timeout 20 bash -c '
+    exec 3<>/dev/tcp/'"$MAIL_IP/$SMTP_PORT"' || exit 1
+    send() { printf "%s\r\n" "$1" >&3; sleep 0.3; }
+    sleep 0.3
+    send "EHLO client.test"; send "MAIL FROM:<$0>"; send "RCPT TO:<$1>"; send "DATA"
+    printf "Date: %s\r\nMessage-ID: <%s@client.test>\r\nFrom: <%s>\r\nTo: <%s>\r\nSubject: %s\r\n\r\n%s\r\n.\r\n" \
+      "$(date -R)" "$(date +%s%N)" "$0" "$1" "$2" "$3" >&3
+    sleep 0.5; send "QUIT"
+    timeout 3 cat <&3' "$2" "$3" "$4" "$5"
+}
+can_connect() { incus exec "$1" -- timeout 3 bash -c "exec 3<>/dev/tcp/$MAIL_IP/$SMTP_PORT" 2>/dev/null; }
+mlog_mark()   { incus exec "$MAIL" -- sh -c 'wc -l < /var/log/mail.log'; }
+mlog_since()  { incus exec "$MAIL" -- sh -c "tail -n +$(( $1 + 1 )) /var/log/mail.log"; }
+# wait_mlog <mark> <pattern> <seconds>
+wait_mlog() { local i; for i in $(seq 1 "$3"); do mlog_since "$1" | grep -q -- "$2" && return 0; sleep 1; done; return 1; }
+
+# ------------------------------------------------------------------ 1. baseline
+section "1. Baseline: legitimate message from $LEGIT"
+M=$(mlog_mark)
+smtp "$LEGIT" "alice@client.test" "$RCPT" "Weekly sensor report" \
+  "Hello, the weekly temperature report for dc1 is ready on the analytics service." > "$EVID/1-legit-smtp.txt"
+cat "$EVID/1-legit-smtp.txt"
+grep -q "^250 2.0.0 Ok: queued" "$EVID/1-legit-smtp.txt" && ok "legitimate message accepted" || bad "legitimate message not accepted"
+info "waiting for SpamAssassin + local delivery (up to 60 s)"
+wait_mlog "$M" "delivered to mailbox" 60 && ok "legitimate message delivered to the mailbox" || bad "legitimate message not delivered"
+mlog_since "$M" > "$EVID/1-mail.log"
+grep -q "spamd: clean message" "$EVID/1-mail.log" && ok "SpamAssassin scored it as clean" || info "no 'clean message' line from spamd (check $EVID/1-mail.log)"
+
+# ------------------------------------------------------------------ 2. spam content
+section "2. Spam content: GTUBE message from $ATTACKER"
+M=$(mlog_mark); MARK=$(alerts_mark)
+smtp "$ATTACKER" "promo@evil.test" "$RCPT" "You won a prize" "$GTUBE" > "$EVID/2-spam-smtp.txt"
+grep -q "^250 2.0.0 Ok: queued" "$EVID/2-spam-smtp.txt" && ok "spam accepted for scanning" || bad "spam not accepted by Postfix"
+info "waiting for SpamAssassin (up to 60 s)"
+wait_mlog "$M" "identified spam" 60 && ok "SpamAssassin identified the spam" || bad "SpamAssassin did not flag the message"
+wait_mlog "$M" "hold: header X-Spam-Flag" 30 && ok "spam quarantined on HOLD (not delivered)" || bad "spam was not quarantined (is mail/header_checks applied?)"
+mlog_since "$M" > "$EVID/2-mail.log"
+grep -q "delivered to mailbox" "$EVID/2-mail.log" && bad "the spam reached the mailbox" || ok "nothing was delivered to the mailbox"
+incus exec "$MAIL" -- postqueue -p > "$EVID/2-hold-queue.txt" 2>&1
+grep -q '!' "$EVID/2-hold-queue.txt" && info "hold queue (! = on hold): $(grep -c '!' "$EVID/2-hold-queue.txt") message(s)"
+for r in 100220 100223; do
+  if wait_alert "$MARK" "$r" 20 > "$EVID/2-wazuh-alerts-$r.json"; then ok "Wazuh rule $r fired"; alert_summary < "$EVID/2-wazuh-alerts-$r.json" | head -4
+  else bad "Wazuh rule $r did not fire"; fi
+done
+
+# ------------------------------------------------------------------ 3. open relay
+section "3. Open relay: $ATTACKER tries to send to an outside domain"
+smtp "$ATTACKER" "promo@evil.test" "victim@example.org" "relay test" "relay test" > "$EVID/3-relay-smtp.txt"
+cat "$EVID/3-relay-smtp.txt"
+grep -qi "Relay access denied" "$EVID/3-relay-smtp.txt" && ok "relay refused (Relay access denied)" || bad "relay was not refused (mynetworks still trusts the lab?)"
+
+# ------------------------------------------------------------------ 4. flood
+section "4. Flood: $COUNT messages in parallel from $ATTACKER"
+M=$(mlog_mark); MARK=$(alerts_mark)
+AR_LINES=$(incus exec "$MAIL" -- sh -c 'wc -l < /var/ossec/logs/active-responses.log' 2>/dev/null || echo 0)
+T0=$(now)
+for i in $(seq 1 "$COUNT"); do
+  smtp "$ATTACKER" "flood$i@evil.test" "$RCPT" "Cheap offer $i" "Buy now $i" > "$EVID/4-flood-smtp-$i.txt" 2>&1 &
+done
+BLOCKED_AT=""
+for i in $(seq 1 60); do blocked "$MAIL" "$ATT_IP" && { BLOCKED_AT=$(now); break; }; sleep 0.5; done
+incus exec "$MAIL" -- iptables -L INPUT -n -v > "$EVID/4-iptables-during-block.txt" 2>&1
+wait
+SENT=$(grep -l "^250 2.0.0 Ok: queued" "$EVID"/4-flood-smtp-*.txt 2>/dev/null | wc -l)
+info "flood: $SENT of $COUNT messages accepted before the block"
+cat "$EVID"/4-flood-smtp-*.txt > "$EVID/4-flood-smtp.txt"; rm -f "$EVID"/4-flood-smtp-*.txt
+
+if wait_alert "$MARK" 100222 20 "\"srcip\":\"$ATT_IP\"" > /dev/null; then ok "rule 100222 (mail flood) fired for $ATT_IP"
+else bad "rule 100222 did not fire for $ATT_IP"; fi
+alerts_since "$MARK" 100222 > "$EVID/4-wazuh-alerts-100222.json"
+alert_summary < "$EVID/4-wazuh-alerts-100222.json" | head -5
+FIRST=$(alert_first_epoch < "$EVID/4-wazuh-alerts-100222.json")
+DETECT=$([ -n "$FIRST" ] && elapsed "$T0" "$FIRST" || echo n/a)
+
+cat "$EVID/4-iptables-during-block.txt"
+[ -n "$BLOCKED_AT" ] && ok "$ATT_IP blocked $(elapsed "$T0" "$BLOCKED_AT") s after the flood started" || bad "$ATT_IP was never blocked"
+incus exec "$MAIL" -- sh -c "tail -n +$((AR_LINES + 1)) /var/ossec/logs/active-responses.log" > "$EVID/4-active-responses.log" 2>/dev/null
+grep -q "\"command\":\"add\".*$ATT_IP" "$EVID/4-active-responses.log" && ok "firewall-drop add logged on $MAIL" || bad "no firewall-drop add in $MAIL's active-responses.log"
+if [ -n "$BLOCKED_AT" ] && blocked "$MAIL" "$ATT_IP"; then
+  can_connect "$ATTACKER" && bad "attacker can still connect while blocked" || ok "attacker cannot connect while blocked"
 fi
+blocked "$MAIL" "$LEGIT_IP" && bad "legitimate sender $LEGIT_IP was blocked (false positive)" || ok "legitimate sender $LEGIT_IP not blocked"
+smtp "$LEGIT" "alice@client.test" "$RCPT" "Still working" "Mail from a legitimate sender during the flood." > "$EVID/4-legit-during-block.txt"
+grep -q "^250 2.0.0 Ok: queued" "$EVID/4-legit-during-block.txt" && ok "legitimate sender can still send during the block" || bad "legitimate sender could not send during the block"
+mlog_since "$M" > "$EVID/4-mail.log"
 
-echo "== 6. Confirm the flooding IP is now blocked (expect the connection to fail)"
-if timeout 3 bash -c "exec 3<>/dev/tcp/$IP/$SMTP_PORT" 2>/dev/null; then
-  bad "SMTP port still reachable (expected blocked)"
-else
-  ok "SMTP connection from the flooding IP is now blocked"
-fi
-
-echo "== 7. Wait out the 60s block, then confirm access returns (skip with --no-wait)"
+# ------------------------------------------------------------------ 5. recovery
+section "5. Recovery: block removed after ${BLOCK_SECS} s (skip with --no-wait)"
 if [ "${1:-}" != "--no-wait" ]; then
-  sleep 60
-  if timeout 3 bash -c "exec 3<>/dev/tcp/$IP/$SMTP_PORT" 2>/dev/null; then
-    ok "access restored after the block timed out"
-  else
-    bad "still blocked after 60s"
-  fi
+  sleep $((BLOCK_SECS + 10))
+  blocked "$MAIL" "$ATT_IP" && bad "$ATT_IP still blocked after the timeout" || ok "$ATT_IP unblocked after the timeout"
+  can_connect "$ATTACKER" && ok "attacker can connect again" || bad "attacker still cannot connect"
 else
-  echo "    skipped"
+  info "skipped"
 fi
 
-echo
-echo "Result: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+section "Post-mortem summary"
+{
+  echo "  spam content : flagged by SpamAssassin -> $(grep -q 'hold: header X-Spam-Flag' "$EVID/2-mail.log" && echo quarantined on hold || echo DELIVERED)"
+  echo "  open relay   : $(grep -qi 'Relay access denied' "$EVID/3-relay-smtp.txt" && echo refused || echo ALLOWED)"
+  echo "  flood        : $SENT/$COUNT messages accepted before the block; first 100222 alert after ${DETECT} s;" \
+       "blocked after $([ -n "$BLOCKED_AT" ] && elapsed "$T0" "$BLOCKED_AT" || echo never) s"
+  echo "  false positive (legit sender blocked): $(grep -qw "$LEGIT_IP" "$EVID/4-iptables-during-block.txt" && echo yes || echo no)"
+  echo "  limitations  : GTUBE is a test signature (real spam needs Bayes/RBL tuning); a spammer that rotates IPs or"
+  echo "                 stays under 10 messages/30 s is not blocked; quarantined mail must be reviewed by an operator."
+} | tee "$EVID/summary.txt"
+
+finish

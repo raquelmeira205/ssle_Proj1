@@ -28,3 +28,86 @@ groups:
         annotations:
           summary: "Request backlog building on {{ $labels.job }}"
           description: "{{ $value }} requests currently in progress."
+
+  # Correlation: several symptoms are combined into ONE alert that names the root cause.
+  #   kind=symptom     something is wrong somewhere (errors seen by a dependent service)
+  #   kind=root-cause  the symptom plus the state of its dependency explain WHY
+  # Exercised by test-rootcause.sh (stops the storage container).
+  - name: ssle-root-cause
+    interval: 5s
+    rules:
+      - alert: SSLEInstanceDown
+        expr: up{job=~"ssle-.+"} == 0
+        for: 10s
+        labels:
+          severity: critical
+          kind: root-cause
+          root_cause: "{{ $labels.job }}"
+        annotations:
+          summary: "{{ $labels.job }} ({{ $labels.instance }}) is not answering scrapes"
+
+      - alert: SSLEStorageErrorsSymptom
+        expr: >
+          (sum(increase(analytics_storage_errors_total[1m])) or vector(0))
+          + (sum(increase(ingestion_readings_total{result="storage_error"}[1m])) or vector(0)) > 0
+        labels:
+          severity: warning
+          kind: symptom
+        annotations:
+          summary: "Ingestion/analytics cannot use storage ({{ $value | printf \"%.0f\" }} errors in 1 min)"
+
+      - alert: SSLERootCauseStorageDown
+        expr: >
+          ((sum(increase(analytics_storage_errors_total[1m])) or vector(0))
+           + (sum(increase(ingestion_readings_total{result="storage_error"}[1m])) or vector(0)) > 0)
+          and on() (sum(up{job="ssle-storage"}) == 0)
+        labels:
+          severity: critical
+          kind: root-cause
+          root_cause: storage
+        annotations:
+          summary: "Root cause: storage is down; ingestion and analytics errors are a consequence"
+
+      - alert: SSLERootCauseStorageUnreachable
+        expr: >
+          ((sum(increase(analytics_storage_errors_total[1m])) or vector(0))
+           + (sum(increase(ingestion_readings_total{result="storage_error"}[1m])) or vector(0)) > 0)
+          and on() (sum(up{job="ssle-storage"}) > 0)
+        for: 15s
+        labels:
+          severity: warning
+          kind: root-cause
+          root_cause: network-or-discovery
+        annotations:
+          summary: "Storage is up but dependents cannot reach it: check the network/firewall or the registry"
+
+      - alert: SSLEStorageNotRegistered
+        expr: absent(registry_instances{service="storage-service"}) and on() (sum(up{job="ssle-registry"}) > 0)
+        for: 10s
+        labels:
+          severity: warning
+          kind: symptom
+        annotations:
+          summary: "The registry has no storage-service instance (removed after failed health checks)"
+
+      - alert: SSLERootCauseIngestionDown
+        expr: >
+          (sum(increase(sensor_readings_sent_total{result="error"}[1m])) > 0)
+          and on() (sum(up{job="ssle-ingestion"}) == 0)
+        labels:
+          severity: critical
+          kind: root-cause
+          root_cause: ingestion
+        annotations:
+          summary: "Root cause: ingestion is down; sensors cannot deliver readings"
+
+      - alert: SSLERootCauseRequestFlood
+        expr: >
+          (histogram_quantile(0.95, sum by (le, job) (rate(http_request_duration_seconds_bucket[15s]))) > 0.05)
+          and on(job) (sum by (job) (rate(http_requests_total[15s])) > 5)
+        labels:
+          severity: critical
+          kind: root-cause
+          root_cause: request-flood
+        annotations:
+          summary: "Root cause: {{ $labels.job }} is slow because of a request flood (see Wazuh rule 100210 for the source IPs)"

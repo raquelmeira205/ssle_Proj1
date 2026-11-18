@@ -39,7 +39,12 @@ alias_maps = hash:/etc/aliases
 alias_database = hash:/etc/aliases
 mydestination = $myhostname, mail-container, localhost.localdomain, localhost
 relayhost = 
-mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.255.255.0/24
+# SSLE hardening: only localhost is trusted. The whole lab /24 used to be listed here, which let
+# any container relay mail and made SpamAssassin treat it as trusted (ALL_TRUSTED).
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
+# SSLE hardening: mail that SpamAssassin flags (X-Spam-Flag: YES, added by the spamc pipe in
+# master.cf) is put on HOLD (quarantine) instead of being delivered. See mail/header_checks.
+header_checks = regexp:/etc/postfix/header_checks
 mailbox_size_limit = 0
 recipient_delimiter = +
 inet_interfaces = all

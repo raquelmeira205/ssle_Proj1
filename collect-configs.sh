@@ -48,6 +48,7 @@ pull "$DNS" /var/ossec/etc/ossec.conf wazuh/agents/dns-ossec.conf
 echo "== Mail server ($MAIL)"
 pull "$MAIL" /etc/postfix/main.cf mail/postfix-main.cf
 pull "$MAIL" /etc/postfix/master.cf mail/postfix-master.cf
+pull "$MAIL" /etc/postfix/header_checks mail/header_checks
 pull "$MAIL" /etc/default/spamassassin mail/spamassassin-default
 pull "$MAIL" /etc/spamassassin/local.cf mail/spamassassin-local.cf
 pull "$MAIL" /var/ossec/etc/ossec.conf wazuh/agents/mail-ossec.conf

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""HTTP flood / load generator used by test-ddos.sh (stdlib only, so it runs in any container).
+Prints a human summary and a last line "RESULT ok=.. failed=.. p50=.. p95=.." for scripts."""
 import argparse, time, urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor
 
@@ -43,11 +45,12 @@ def run_phase(name, url, duration, workers, delay, timeout):
     print(f"  Total requests : {total} (OK: {ok}, Failed/Blocked: {failed})")
     print(f"  Throughput     : {ok / elapsed:.2f} ok req/s ({total / elapsed:.2f} total req/s)")
     print(f"  Latency p50    : {p50:.2f} ms")
-    print(f"  Latency p95    : {p95:.2f} ms\n")
+    print(f"  Latency p95    : {p95:.2f} ms")
+    print(f"RESULT ok={ok} failed={failed} p50={p50:.0f} p95={p95:.0f}\n")
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--url", default="http://10.255.255.133:5003/stats?limit=10000")
+    ap.add_argument("--url", required=True, help="e.g. http://<analytics-ip>:5003/stats?limit=1000")
     ap.add_argument("--duration", type=int, default=15)
     ap.add_argument("--workers", type=int, default=1)
     ap.add_argument("--delay", type=float, default=0.5)
