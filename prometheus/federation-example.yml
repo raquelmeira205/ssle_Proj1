@@ -1,0 +1,19 @@
+# Example (not deployed): a CENTRAL Prometheus that only pulls per-location aggregates from one
+# Prometheus per data centre, instead of scraping every instance itself.
+#   - each DC Prometheus scrapes its own services (cheap, local traffic) and evaluates the
+#     ssle-location-aggregates recording rules (prometheus/ssle_rules.yml)
+#   - the central one federates only location:* series -> WAN traffic grows with the number of
+#     locations, not with the number of instances. test-scale.sh measures the difference.
+global:
+  scrape_interval: 30s
+scrape_configs:
+  - job_name: 'federate-dcs'
+    honor_labels: true
+    metrics_path: /federate
+    params:
+      'match[]': ['{__name__=~"location:.+"}']
+    static_configs:
+      - targets: ['prometheus-dc1.incus:9090']
+        labels: { dc_prometheus: dc1 }
+      - targets: ['prometheus-dc2.incus:9090']
+        labels: { dc_prometheus: dc2 }

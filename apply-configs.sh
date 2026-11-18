@@ -70,6 +70,9 @@ prometheus)
   step "Prometheus config + rules -> $PROM:/etc/prometheus/"
   incus file push prometheus/prometheus.yml "$PROM/etc/prometheus/prometheus.yml"
   incus file push prometheus/ssle_rules.yml "$PROM/etc/prometheus/ssle_rules.yml"
+  # target file of the ssle-scale job: created empty once, then owned by test-scale.sh
+  incus exec "$PROM" -- test -f /etc/prometheus/scale-targets.json \
+    || incus file push prometheus/scale-targets.json "$PROM/etc/prometheus/scale-targets.json"
   if incus exec "$PROM" -- promtool check config /etc/prometheus/prometheus.yml; then
     # Reload (SIGHUP), not restart: on a reload Prometheus marks the series of removed targets as
     # stale at once; after a restart they stay visible for 5 min (old-IP "up == 0" ghosts).

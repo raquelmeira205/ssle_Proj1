@@ -33,3 +33,9 @@ scrape_configs:
   - job_name: 'ssle-sensor'
     static_configs:
       - targets: ['sensor.incus:8000']
+
+  # Extra instances started by test-scale.sh in other locations (dc2, ...). The file is
+  # rewritten by the test; Prometheus picks the change up by itself (no reload). "[]" = none.
+  - job_name: 'ssle-scale'
+    file_sd_configs:
+      - files: ['/etc/prometheus/scale-targets.json']

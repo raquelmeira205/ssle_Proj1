@@ -116,3 +116,26 @@ groups:
           root_cause: request-flood
         annotations:
           summary: "Root cause: {{ $labels.job }} is slow because of a request flood (see Wazuh rule 100210 for the source IPs)"
+
+  # Per-location aggregates (bonus: monitor by location while saving bandwidth).
+  # service_info carries each instance's location; joining on instance and summing by
+  # country/region/dc turns hundreds of per-instance series into one series per location.
+  # A central Prometheus only needs to federate these (match[]={__name__=~"location:.+"}),
+  # see prometheus/federation-example.yml; test-scale.sh measures the bytes saved.
+  - name: ssle-location-aggregates
+    interval: 15s
+    rules:
+      - record: location:http_requests:rate1m
+        expr: >
+          sum by (country, region, dc, service) (rate(http_requests_total[1m])
+            * on(instance) group_left(country, region, dc) max by (instance, country, region, dc) (service_info))
+      - record: location:http_errors:rate1m
+        expr: >
+          sum by (country, region, dc, service) (rate(http_requests_total{status=~"5.."}[1m])
+            * on(instance) group_left(country, region, dc) max by (instance, country, region, dc) (service_info))
+      - record: location:http_request_duration_seconds:p95
+        expr: >
+          histogram_quantile(0.95, sum by (le, country, region, dc) (rate(http_request_duration_seconds_bucket[1m])
+            * on(instance) group_left(country, region, dc) max by (instance, country, region, dc) (service_info)))
+      - record: location:instances:count
+        expr: count by (country, region, dc, service) (service_info)

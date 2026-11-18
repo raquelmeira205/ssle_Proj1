@@ -9,6 +9,7 @@ service registry) deployed as Incus containers. It's monitored by **Prometheus**
 | 1 | Massive denial-of-service (HTTP flood) | Wazuh 100210: 15 requests in 10 s from one IP. Prometheus request-rate, latency and backlog alerts | `firewall-drop` of the source IP for 60 s on the attacked service | [test-ddos.sh](test-ddos.sh) | `evidence/ddos/` |
 | 2 | Junk email (spam content and mail flood) | Wazuh 100220 (SpamAssassin), 100223 (quarantined), 100222 (10 mails in 30 s from one IP) | Spam put on hold (quarantine); flood source `firewall-drop` for 60 s; relaying refused | [test-spam.sh](test-spam.sh) | `evidence/spam/` |
 | 3 | Route / signal hijacking (DNS hijacking) | Wazuh FIM (real time) on the DNS zone: rule 550 → 100230 | `restore-dns.sh` puts the golden zone back and restarts dnsmasq | [test-dns.sh](test-dns.sh) | `evidence/dns/` |
+| – | Scalability (horizontal scaling across locations, registry growth, monitoring bandwidth) | Throughput and latency with 1 vs 2 instances, per-location Prometheus aggregates | – | [test-scale.sh](test-scale.sh) | `evidence/scale/` |
 | – | Fault management: anomaly events + root cause | Prometheus correlation rules (`ssle-root-cause` group); Wazuh 100201 (HTTP 5xx) per service | One root-cause alert instead of many symptoms; the registry drops dead instances | [test-rootcause.sh](test-rootcause.sh) | `evidence/rootcause/` |
 
 ## Architecture
@@ -50,6 +51,8 @@ rack > node). The same ID is used for:
 | `test-incus.sh`, `test-system_docker.sh` | functional tests of the base architecture |
 | `test-lib.sh` | helpers shared by the threat tests |
 | `ddos-poc.py` | HTTP load generator used by the DDoS test |
+| `scale-tool.py` | load generator and registry benchmark used by the scalability test |
+| `prometheus/federation-example.yml` | how a central Prometheus would federate only the per-location aggregates |
 | `Dockerfile`, `docker-compose.yml`, `build-and-push.sh`, `k8s/ssle.yaml` | Docker / k3s variants (Guide 2) |
 
 ## Deploying (on the Incus host, from the repo root)
@@ -72,7 +75,17 @@ blocks in `wazuh/manager-active-response.xml` must be appended to the manager's 
 ./test-spam.sh          # about 3 min (--no-wait)
 ./test-dns.sh --control # about 1 min, --control also shows the hijack without Wazuh
 ./test-rootcause.sh     # about 3 min
+./test-scale.sh         # about 6 min the first time (it deploys ingestion/analytics in dc2)
 ```
+
+**Monitoring by location (bonus).** The recording rules in the `ssle-location-aggregates` group
+(`location:http_requests:rate1m`, `location:http_errors:rate1m`,
+`location:http_request_duration_seconds:p95`, `location:instances:count`) join every metric with
+`service_info` and sum it per country/region/dc. One Prometheus per data centre scrapes its own
+services, and a central one federates only the `location:*` series
+([prometheus/federation-example.yml](prometheus/federation-example.yml)). Traffic over the
+long-distance links between locations then grows with the number of locations, not with the number
+of instances. `test-scale.sh` measures the byte difference.
 
 Each test prints a **threat card**: description, why it matters for this system, how it's exploited,
 what's monitored and what the action-response is. It then runs the PoC and checks detection,
