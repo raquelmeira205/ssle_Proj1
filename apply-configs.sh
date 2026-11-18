@@ -71,7 +71,10 @@ prometheus)
   incus file push prometheus/prometheus.yml "$PROM/etc/prometheus/prometheus.yml"
   incus file push prometheus/ssle_rules.yml "$PROM/etc/prometheus/ssle_rules.yml"
   if incus exec "$PROM" -- promtool check config /etc/prometheus/prometheus.yml; then
-    incus exec "$PROM" -- systemctl restart prometheus && echo "  ok, prometheus restarted"
+    # Reload (SIGHUP), not restart: on a reload Prometheus marks the series of removed targets as
+    # stale at once; after a restart they stay visible for 5 min (old-IP "up == 0" ghosts).
+    incus exec "$PROM" -- sh -c 'systemctl reload prometheus 2>/dev/null || pkill -HUP -x prometheus' \
+      && echo "  ok, prometheus reloaded"
   else
     fail "promtool rejected the config"
   fi

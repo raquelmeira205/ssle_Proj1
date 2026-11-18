@@ -68,12 +68,17 @@ groups:
         annotations:
           summary: "Root cause: storage is down; ingestion and analytics errors are a consequence"
 
+      # Errors must still be happening (30 s window, held 30 s) and must not be explained by a
+      # request flood: during the DDoS test analytics timed out on an overloaded storage and this
+      # rule wrongly blamed the network, and it also went pending for the leftover errors right
+      # after storage recovered.
       - alert: SSLERootCauseStorageUnreachable
         expr: >
-          ((sum(increase(analytics_storage_errors_total[1m])) or vector(0))
-           + (sum(increase(ingestion_readings_total{result="storage_error"}[1m])) or vector(0)) > 0)
+          ((sum(rate(analytics_storage_errors_total[30s])) or vector(0))
+           + (sum(rate(ingestion_readings_total{result="storage_error"}[30s])) or vector(0)) > 0)
           and on() (sum(up{job="ssle-storage"}) > 0)
-        for: 15s
+          unless on() (max(sum by (job) (rate(http_requests_total{job=~"ssle-.+"}[1m]))) > 5)
+        for: 30s
         labels:
           severity: warning
           kind: root-cause

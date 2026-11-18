@@ -81,8 +81,8 @@ time, time to block or restore, success rate of legitimate traffic, limitations)
 the raw excerpts (Wazuh alert JSON, iptables, mail/DNS logs, Prometheus queries and alerts) are saved
 in `evidence/<threat>/`.
 
-The files directly in `evidence/` (`ddos-*.txt`, `spam-*.txt`, `dns-*.txt`,
-`baseline-test-incus.txt`) come from the first, manual run before the tests were automated.
+`evidence/first-manual-run/` holds the first, manual run before the tests were automated, kept for
+comparison.
 
 ## Known limitations
 
