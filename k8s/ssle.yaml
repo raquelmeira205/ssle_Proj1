@@ -1,51 +1,72 @@
-# Guide 2, section 5.2 - deploy the services in Kubernetes (k3s).
-#   kubectl apply -f ssle.yaml
+# SSLE on k3s (Guide 2, section 5.2). Applied by k3s/deploy.sh, which replaces __TAG__ with the
+# image tag it just built. Generated layout (edit freely):
+#   - every k3s node is a location: k3s-master = dc1, k3s-node1 = dc2 (node label ssle.dc)
+#   - ingestion, analytics and the sensor run once PER LOCATION (one Deployment each, nodeSelector);
+#     registry and storage (single SQLite writer) run in dc1
+#   - each pod registers ITS OWN address (status.podIP), so replicas are separate registry entries
+#   - NODE = k3s node (physical), INSTANCE = pod name (logical) -> hierarchical ID
+#   - the JSON access log goes to the node: /var/log/ssle/<pod>/access.log (read by the node's
+#     Wazuh agent, k3s/install-wazuh-node-agents.sh)
+#   - ingestion and analytics are published on NodePorts 30001/30003 with externalTrafficPolicy
+#     Local; registry and storage are ClusterIP only
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ssle
 ---
-# Where this deployment lives (country > region > dc > rack). NODE and INSTANCE are injected
-# per pod below. Edit these four values to relabel every service and metric in one place.
 apiVersion: v1
 kind: ConfigMap
 metadata: { name: location, namespace: ssle }
 data:
   COUNTRY: pt
   REGION: centro
-  DC: dc1
-  RACK: rack1
 ---
-# ---------- registry ----------
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: registry, namespace: ssle }
+metadata: { name: registry, namespace: ssle, labels: { app: registry, dc: dc1 } }
 spec:
   replicas: 1
-  selector: { matchLabels: { app: registry } }
+  selector: { matchLabels: { app: registry, dc: dc1 } }
   template:
-    metadata: { labels: { app: registry } }
+    metadata:
+      labels: { app: registry, dc: dc1, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5050" }
     spec:
+      nodeSelector: { ssle.dc: dc1 }
       containers:
         - name: registry
-          image: docker.incus:5000/ssle/registry:1.0
+          image: docker.incus:5000/ssle/registry:__TAG__
           imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 5050 }]
           envFrom: [{ configMapRef: { name: location } }]
           env:
+            - { name: DC, value: dc1 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
             - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
             - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
-          ports: [{ containerPort: 5050 }]
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+            - { name: SERVICE_URL, value: "http://$(POD_IP):5050" }   # the POD, not the Service
+            - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
           readinessProbe: { httpGet: { path: /health, port: 5050 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 5050 }, periodSeconds: 10, failureThreshold: 3 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: logs, mountPath: /var/log/ssle, subPathExpr: $(INSTANCE) }
+      volumes:
+        - name: logs
+          hostPath: { path: /var/log/ssle, type: DirectoryOrCreate }
 ---
 apiVersion: v1
 kind: Service
 metadata: { name: registry, namespace: ssle }
 spec:
-  type: NodePort
+  type: ClusterIP                 # internal only (no authentication: never expose the registry)
   selector: { app: registry }
-  ports: [{ port: 5050, targetPort: 5050, nodePort: 30050 }]
+  ports: [{ port: 5050, targetPort: 5050 }]
 ---
-# ---------- storage (keeps its SQLite file on a volume) ----------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata: { name: storage-data, namespace: ssle }
@@ -55,120 +76,294 @@ spec:
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: storage, namespace: ssle }
+metadata: { name: storage, namespace: ssle, labels: { app: storage, dc: dc1 } }
 spec:
-  replicas: 1                 # SQLite = single writer
-  strategy: { type: Recreate }
-  selector: { matchLabels: { app: storage } }
+  replicas: 1
+  strategy: { type: Recreate }   # SQLite = single writer
+  selector: { matchLabels: { app: storage, dc: dc1 } }
   template:
-    metadata: { labels: { app: storage } }
+    metadata:
+      labels: { app: storage, dc: dc1, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5002" }
     spec:
+      nodeSelector: { ssle.dc: dc1 }
       containers:
         - name: storage
-          image: docker.incus:5000/ssle/storage:1.0
+          image: docker.incus:5000/ssle/storage:__TAG__
           imagePullPolicy: IfNotPresent
-          envFrom: [{ configMapRef: { name: location } }]
           ports: [{ containerPort: 5002 }]
+          envFrom: [{ configMapRef: { name: location } }]
           env:
+            - { name: DC, value: dc1 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
             - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
             - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+            - { name: SERVICE_URL, value: "http://$(POD_IP):5002" }   # the POD, not the Service
             - { name: REGISTRY_URL, value: "http://registry:5050" }
-            - { name: SERVICE_URL, value: "http://storage:5002" }
-            - { name: DB_PATH, value: "/data/temp_data.db" }
-          volumeMounts: [{ name: data, mountPath: /data }]
+            - { name: DB_PATH, value: /data/temp_data.db }
+            - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
           readinessProbe: { httpGet: { path: /health, port: 5002 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 5002 }, periodSeconds: 10, failureThreshold: 3 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: logs, mountPath: /var/log/ssle, subPathExpr: $(INSTANCE) }
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: storage-data }
+        - name: logs
+          hostPath: { path: /var/log/ssle, type: DirectoryOrCreate }
 ---
 apiVersion: v1
 kind: Service
 metadata: { name: storage, namespace: ssle }
 spec:
+  type: ClusterIP                 # internal only
   selector: { app: storage }
   ports: [{ port: 5002, targetPort: 5002 }]
 ---
-# ---------- ingestion (2 replicas, balanced by the Kubernetes Service) ----------
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: ingestion, namespace: ssle }
+metadata: { name: ingestion-dc1, namespace: ssle, labels: { app: ingestion, dc: dc1 } }
 spec:
-  replicas: 2
-  selector: { matchLabels: { app: ingestion } }
+  replicas: 1
+  selector: { matchLabels: { app: ingestion, dc: dc1 } }
   template:
-    metadata: { labels: { app: ingestion } }
+    metadata:
+      labels: { app: ingestion, dc: dc1, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5001" }
     spec:
+      nodeSelector: { ssle.dc: dc1 }
       containers:
         - name: ingestion
-          image: docker.incus:5000/ssle/ingestion:1.0
+          image: docker.incus:5000/ssle/ingestion:__TAG__
           imagePullPolicy: IfNotPresent
-          envFrom: [{ configMapRef: { name: location } }]
           ports: [{ containerPort: 5001 }]
+          envFrom: [{ configMapRef: { name: location } }]
           env:
+            - { name: DC, value: dc1 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
             - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
             - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+            - { name: SERVICE_URL, value: "http://$(POD_IP):5001" }   # the POD, not the Service
             - { name: REGISTRY_URL, value: "http://registry:5050" }
-            - { name: SERVICE_URL, value: "http://ingestion:5001" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
+            - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
           readinessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 10, failureThreshold: 3 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: logs, mountPath: /var/log/ssle, subPathExpr: $(INSTANCE) }
+      volumes:
+        - name: logs
+          hostPath: { path: /var/log/ssle, type: DirectoryOrCreate }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: ingestion-dc2, namespace: ssle, labels: { app: ingestion, dc: dc2 } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: ingestion, dc: dc2 } }
+  template:
+    metadata:
+      labels: { app: ingestion, dc: dc2, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5001" }
+    spec:
+      nodeSelector: { ssle.dc: dc2 }
+      containers:
+        - name: ingestion
+          image: docker.incus:5000/ssle/ingestion:__TAG__
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 5001 }]
+          envFrom: [{ configMapRef: { name: location } }]
+          env:
+            - { name: DC, value: dc2 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+            - { name: SERVICE_URL, value: "http://$(POD_IP):5001" }   # the POD, not the Service
+            - { name: REGISTRY_URL, value: "http://registry:5050" }
+            - { name: STORAGE_URL, value: "http://storage:5002" }
+            - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
+          readinessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 10, failureThreshold: 3 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: logs, mountPath: /var/log/ssle, subPathExpr: $(INSTANCE) }
+      volumes:
+        - name: logs
+          hostPath: { path: /var/log/ssle, type: DirectoryOrCreate }
 ---
 apiVersion: v1
 kind: Service
 metadata: { name: ingestion, namespace: ssle }
 spec:
+  type: NodePort
+  externalTrafficPolicy: Local    # keep the client's IP (Wazuh srcip); traffic stays on the node it hits
   selector: { app: ingestion }
-  ports: [{ port: 5001, targetPort: 5001 }]
+  ports: [{ port: 5001, targetPort: 5001, nodePort: 30001 }]
 ---
-# ---------- analytics ----------
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: analytics, namespace: ssle }
+metadata: { name: analytics-dc1, namespace: ssle, labels: { app: analytics, dc: dc1 } }
 spec:
   replicas: 1
-  selector: { matchLabels: { app: analytics } }
+  selector: { matchLabels: { app: analytics, dc: dc1 } }
   template:
-    metadata: { labels: { app: analytics } }
+    metadata:
+      labels: { app: analytics, dc: dc1, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5003" }
     spec:
+      nodeSelector: { ssle.dc: dc1 }
       containers:
         - name: analytics
-          image: docker.incus:5000/ssle/analytics:1.0
+          image: docker.incus:5000/ssle/analytics:__TAG__
           imagePullPolicy: IfNotPresent
-          envFrom: [{ configMapRef: { name: location } }]
           ports: [{ containerPort: 5003 }]
+          envFrom: [{ configMapRef: { name: location } }]
           env:
+            - { name: DC, value: dc1 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
             - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
             - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+            - { name: SERVICE_URL, value: "http://$(POD_IP):5003" }   # the POD, not the Service
             - { name: REGISTRY_URL, value: "http://registry:5050" }
-            - { name: SERVICE_URL, value: "http://analytics:5003" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
+            - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
           readinessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 10, failureThreshold: 3 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: logs, mountPath: /var/log/ssle, subPathExpr: $(INSTANCE) }
+      volumes:
+        - name: logs
+          hostPath: { path: /var/log/ssle, type: DirectoryOrCreate }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: analytics-dc2, namespace: ssle, labels: { app: analytics, dc: dc2 } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: analytics, dc: dc2 } }
+  template:
+    metadata:
+      labels: { app: analytics, dc: dc2, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5003" }
+    spec:
+      nodeSelector: { ssle.dc: dc2 }
+      containers:
+        - name: analytics
+          image: docker.incus:5000/ssle/analytics:__TAG__
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 5003 }]
+          envFrom: [{ configMapRef: { name: location } }]
+          env:
+            - { name: DC, value: dc2 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+            - { name: SERVICE_URL, value: "http://$(POD_IP):5003" }   # the POD, not the Service
+            - { name: REGISTRY_URL, value: "http://registry:5050" }
+            - { name: STORAGE_URL, value: "http://storage:5002" }
+            - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
+          readinessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 10, failureThreshold: 3 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: logs, mountPath: /var/log/ssle, subPathExpr: $(INSTANCE) }
+      volumes:
+        - name: logs
+          hostPath: { path: /var/log/ssle, type: DirectoryOrCreate }
 ---
 apiVersion: v1
 kind: Service
 metadata: { name: analytics, namespace: ssle }
 spec:
   type: NodePort
+  externalTrafficPolicy: Local    # keep the client's IP (Wazuh srcip); traffic stays on the node it hits
   selector: { app: analytics }
   ports: [{ port: 5003, targetPort: 5003, nodePort: 30003 }]
 ---
-# ---------- temperature sensor (no port, it only sends data) ----------
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: sensor, namespace: ssle }
+metadata: { name: sensor-dc1, namespace: ssle, labels: { app: sensor, dc: dc1 } }
 spec:
   replicas: 1
-  selector: { matchLabels: { app: sensor } }
+  selector: { matchLabels: { app: sensor, dc: dc1 } }
   template:
-    metadata: { labels: { app: sensor } }
+    metadata:
+      labels: { app: sensor, dc: dc1, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "8000" }
     spec:
+      nodeSelector: { ssle.dc: dc1 }
       containers:
         - name: sensor
-          image: docker.incus:5000/ssle/sensor:1.0
+          image: docker.incus:5000/ssle/sensor:__TAG__
           imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8000 }]
           envFrom: [{ configMapRef: { name: location } }]
           env:
+            - { name: DC, value: dc1 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
             - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
             - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: INGESTION_URL, value: "http://ingestion:5001" }
-            - { name: DEVICE_ID, value: "sensor-001" }
+            - { name: DEVICE_ID, value: temp-dc1 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: sensor-dc2, namespace: ssle, labels: { app: sensor, dc: dc2 } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: sensor, dc: dc2 } }
+  template:
+    metadata:
+      labels: { app: sensor, dc: dc2, rack: rack1 }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "8000" }
+    spec:
+      nodeSelector: { ssle.dc: dc2 }
+      containers:
+        - name: sensor
+          image: docker.incus:5000/ssle/sensor:__TAG__
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8000 }]
+          envFrom: [{ configMapRef: { name: location } }]
+          env:
+            - { name: DC, value: dc2 }
+            - { name: RACK, valueFrom: { fieldRef: { fieldPath: "metadata.labels['rack']" } } }
+            - { name: NODE, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - { name: INSTANCE, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
+            - { name: REGISTRY_URL, value: "http://registry:5050" }
+            - { name: INGESTION_URL, value: "http://ingestion:5001" }
+            - { name: DEVICE_ID, value: temp-dc2 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }

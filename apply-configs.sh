@@ -7,15 +7,21 @@
 #
 # Container names can be overridden: WAZUH=... PROM=... MAIL=... DNS=...
 #   SERVICES="registry storage ingestion analytics"   containers whose agent reads the access log
+#   PLATFORM=k3s   the SSLE services run in the k3s cluster (Guide 2, k3s/): the DNS zone points at
+#                  the NodePorts, the central Prometheus federates the in-cluster one, and the
+#                  manager gets the k3s-block response. Default PLATFORM=incus.
 set -u
 cd "$(dirname "$0")" || exit 1
+PLATFORM=${PLATFORM:-incus}
 WAZUH=${WAZUH:-wazuh-container}
 PROM=${PROM:-prometheus-container}
 MAIL=${MAIL:-mail-container}
 DNS=${DNS:-DNS-server-container}
+K3S_MASTER=${K3S_MASTER:-k3s-master}
 SERVICES=${SERVICES:-"registry storage ingestion analytics"}
-# every container of the lab whose address should never change (see the "pin" part)
-LAB=${LAB:-"registry storage ingestion analytics sensor $WAZUH $PROM $MAIL $DNS"}
+# every container of the lab whose address should never change (see the "pin" part); the ones
+# that do not exist (e.g. the k3s nodes on a pure Incus setup) are skipped
+LAB=${LAB:-"registry storage ingestion analytics sensor $WAZUH $PROM $MAIL $DNS $K3S_MASTER k3s-node1 docker"}
 PARTS=${*:-"pin wazuh prometheus mail dns agents"}
 ERR=0
 step() { echo; echo "== $1"; }
@@ -47,6 +53,9 @@ wazuh)
   step "Wazuh CDB list etc/lists/ssle-services (internal service IPs)"
   list=""
   for c in $SERVICES sensor; do ip=$(ip_of "$c"); [ -n "$ip" ] && list="$list$ip:$c\n" && echo "  $ip  $c"; done
+  # k3s: pods talk to each other with pod IPs from the cluster network 10.42.0.0/16, which change
+  # on every restart, so the whole prefix is listed (partial-IP key, matched as a prefix)
+  list="${list}10.42.:k3s-pods\n"; echo "  10.42.*  k3s pod network"
   printf "$list" | incus exec "$WAZUH" -- sh -c 'cat > /var/ossec/etc/lists/ssle-services'
   incus exec "$WAZUH" -- chown wazuh:wazuh /var/ossec/etc/lists/ssle-services
   incus exec "$WAZUH" -- grep -q "etc/lists/ssle-services" /var/ossec/etc/ossec.conf \
@@ -56,6 +65,11 @@ wazuh)
   incus exec "$WAZUH" -- cp /var/ossec/etc/rules/local_rules.xml /var/ossec/etc/rules/local_rules.xml.bak
   incus file push wazuh/ssle-rules.xml "$WAZUH/var/ossec/etc/rules/local_rules.xml"
   incus exec "$WAZUH" -- chown wazuh:wazuh /var/ossec/etc/rules/local_rules.xml
+  if [ "$PLATFORM" = k3s ] && ! incus exec "$WAZUH" -- grep -q "<name>k3s-block</name>" /var/ossec/etc/ossec.conf; then
+    incus exec "$WAZUH" -- cp /var/ossec/etc/ossec.conf /var/ossec/etc/ossec.conf.bak
+    incus exec "$WAZUH" -- sh -c 'cat >> /var/ossec/etc/ossec.conf' < wazuh/manager-active-response-k3s.xml
+    echo "  k3s-block active response added to ossec.conf (backup: ossec.conf.bak)"
+  fi
   if incus exec "$WAZUH" -- /var/ossec/bin/wazuh-analysisd -t; then
     incus exec "$WAZUH" -- systemctl restart wazuh-manager && echo "  ok, manager restarted"
   else
@@ -67,8 +81,13 @@ wazuh)
   ;;
 
 prometheus)
-  step "Prometheus config + rules -> $PROM:/etc/prometheus/"
-  incus file push prometheus/prometheus.yml "$PROM/etc/prometheus/prometheus.yml"
+  step "Prometheus config + rules -> $PROM:/etc/prometheus/ ($PLATFORM)"
+  if [ "$PLATFORM" = k3s ]; then
+    # central Prometheus only federates the in-cluster one (which scrapes the pods itself)
+    incus file push prometheus/prometheus-central-k3s.yml "$PROM/etc/prometheus/prometheus.yml"
+  else
+    incus file push prometheus/prometheus.yml "$PROM/etc/prometheus/prometheus.yml"
+  fi
   incus file push prometheus/ssle_rules.yml "$PROM/etc/prometheus/ssle_rules.yml"
   # target file of the ssle-scale job: created empty once, then owned by test-scale.sh
   incus exec "$PROM" -- test -f /etc/prometheus/scale-targets.json \
@@ -108,7 +127,14 @@ dns)
   # change), and restore-dns.sh sees zone == golden copy and does nothing.
   step "dnsmasq config + ssle.local zone (from the current container IPs) -> $DNS"
   zone=""
-  for entry in registry:registry ingestion:ingestion storage:storage analytics:analytics "$MAIL:mail"; do
+  if [ "$PLATFORM" = k3s ]; then
+    # on k3s the public names point at the node that publishes the NodePorts (ingestion :30001,
+    # analytics :30003); registry and storage are ClusterIP-only, so they get no public name
+    entries="$K3S_MASTER:ingestion $K3S_MASTER:analytics $MAIL:mail"
+  else
+    entries="registry:registry ingestion:ingestion storage:storage analytics:analytics $MAIL:mail"
+  fi
+  for entry in $entries; do
     c=${entry%%:*}; name=${entry##*:}; ip=$(ip_of "$c")
     [ -n "$ip" ] && zone="$zone$(printf '%-15s %s.ssle.local' "$ip" "$name")\n" || echo "  WARNING: $c has no IP, $name.ssle.local left out"
   done

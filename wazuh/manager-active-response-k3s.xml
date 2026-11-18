@@ -1,0 +1,20 @@
+<!-- Appended to the manager's ossec.conf by `PLATFORM=k3s ./apply-configs.sh wazuh` (once).
+     Rule 100210 (HTTP flood) also triggers k3s-block on the agent that raised it. On the k3s nodes
+     it drops the source in raw/PREROUTING, before kube-proxy forwards NodePort traffic to the pods
+     (the stock firewall-drop only touches INPUT, which that traffic never crosses).
+     Incus service containers do not have the script; execd there just logs that it is missing. -->
+<ossec_config>
+  <command>
+    <name>k3s-block</name>
+    <executable>k3s-block</executable>
+    <timeout_allowed>yes</timeout_allowed>
+  </command>
+
+  <active-response>
+    <disabled>no</disabled>
+    <command>k3s-block</command>
+    <location>local</location>
+    <rules_id>100210</rules_id>
+    <timeout>60</timeout>
+  </active-response>
+</ossec_config>

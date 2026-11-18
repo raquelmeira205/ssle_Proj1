@@ -1,0 +1,33 @@
+# Prometheus INSIDE the k3s cluster (k8s/monitoring.yaml). Pod IPs (10.42.x) only exist inside
+# the cluster, so this Prometheus discovers the SSLE pods through the Kubernetes API instead of
+# static targets. It loads the same ssle_rules.yml as the Incus setup; the central
+# prometheus-container federates only its per-location aggregates (prometheus/federate-k3s.yml).
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    cluster: k3s
+
+rule_files:
+  - /etc/prometheus/ssle_rules.yml
+
+scrape_configs:
+  - job_name: ssle-pods
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces: { names: [ssle] }
+    relabel_configs:
+      # only pods annotated prometheus.io/scrape: "true"
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        regex: "true"
+        action: keep
+      # (the pod role makes one target per declared containerPort; each SSLE pod declares exactly
+      #  one, its metrics port, so the address is already right)
+      # job = ssle-<app>, the same job names as on Incus, so every alert/root-cause rule still works
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        target_label: job
+        replacement: ssle-$1
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: k8s_node

@@ -11,6 +11,7 @@
 #
 # Run on the Incus host from the repo root:   ./test-rootcause.sh
 #   STORAGE=storage ANALYTICS=analytics REGISTRY=registry
+#   PLATFORM=k3s   stop the storage Deployment (scale to 0) in the k3s cluster instead
 set -u
 source "$(dirname "$0")/test-lib.sh"
 
@@ -28,20 +29,21 @@ threat_card "Service failure -> root-cause detection (fault management)" \
 
 section "0. Baseline"
 PROM=$(prom_url); info "Prometheus at $PROM"
-AN_IP=$(ip_of "$ANALYTICS"); REG_IP=$(ip_of "$REGISTRY")
+AN_URL=$(public_url "$ANALYTICS")        # where users reach analytics
+REG_URL=$(internal_url "$REGISTRY")      # the registry is internal: queried with `near`
 prom_query 'up{job=~"ssle-.+"}' | tee "$EVID/0-up.txt"
 grep -qE '\} 0$' "$EVID/0-up.txt" && bad "some targets are already down" || ok "every SSLE target is up"
 prom_alerts | tee "$EVID/0-alerts.txt"
 grep -q "root-cause\|SSLERootCause" "$EVID/0-alerts.txt" && bad "a root-cause alert is already active" || ok "no root-cause alert before the failure"
 
-section "1. Failure: stopping container $STORAGE"
+section "1. Failure: stopping $STORAGE ($PLATFORM)"
 MARK=$(alerts_mark)
 T0=$(now)
-incus stop "$STORAGE"
-trap 'incus start "$STORAGE" 2>/dev/null' EXIT
+svc_stop "$STORAGE"
+trap 'svc_start "$STORAGE" 2>/dev/null' EXIT
 # users keep asking analytics for stats while storage is down
 ( end=$(( $(date +%s) + 90 )); while [ "$(date +%s)" -lt "$end" ]; do
-    curl -s -o /dev/null --max-time 6 "http://$AN_IP:5003/stats"; sleep 2; done ) &
+    curl -s -o /dev/null --max-time 6 "$AN_URL/stats"; sleep 2; done ) &
 LOAD=$!
 
 if prom_wait_firing SSLERootCauseStorageDown 120; then ok "SSLERootCauseStorageDown firing $(elapsed "$T0" "$(now)") s after the failure"
@@ -60,7 +62,7 @@ grep -qE "SSLEInstanceDown +firing +job=ssle-storage" "$EVID/1-alerts-during-fai
 # The registry needs 2 failed health checks 10 s apart (up to ~30 s), which can be slower than
 # Prometheus naming the root cause, so wait for it instead of checking once.
 for i in $(seq 1 45); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://$REG_IP:5050/services/storage-service")
+  code=$(near curl -s -o /dev/null -w '%{http_code}' --max-time 3 "$REG_URL/services/storage-service")
   [ "$code" = 404 ] && break
   sleep 1
 done
@@ -77,7 +79,7 @@ c = collections.Counter()
 for l in open(sys.argv[1]):
     try: a = json.loads(l)
     except ValueError: continue
-    c[(a["agent"]["name"], a.get("data", {}).get("path", "?"))] += 1
+    c[(a.get("data", {}).get("id") or a["agent"]["name"], a.get("data", {}).get("path", "?"))] += 1
 for (agent, path), n in c.most_common():
     print("    %4d x  %-60s %s" % (n, agent, path))
 ' "$EVID/1-wazuh-alerts-100201.json" | tee "$EVID/1-wazuh-5xx-by-location.txt"
@@ -87,7 +89,7 @@ fi
 
 section "2. Recovery: starting $STORAGE"
 kill "$LOAD" 2>/dev/null; wait 2>/dev/null
-incus start "$STORAGE"; T1=$(now)
+svc_start "$STORAGE"; T1=$(now)
 for i in $(seq 1 120); do
   prom_query 'up{job="ssle-storage"}' | grep -qE '\} 1$' && ! prom_alerts | grep -qE "SSLERootCauseStorageDown +firing" && break
   sleep 1
@@ -96,13 +98,13 @@ prom_alerts | tee "$EVID/2-alerts-after-recovery.txt"
 grep -qE "SSLERootCauseStorageDown +firing" "$EVID/2-alerts-after-recovery.txt" \
   && bad "root-cause alert still firing after recovery" || ok "root-cause alert cleared $(elapsed "$T1" "$(now)") s after storage restarted"
 for i in $(seq 1 30); do
-  [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://$REG_IP:5050/services/storage-service")" = 200 ] && break; sleep 1
+  [ "$(near curl -s -o /dev/null -w '%{http_code}' --max-time 3 "$REG_URL/services/storage-service")" = 200 ] && break; sleep 1
 done
 [ "$i" -lt 30 ] && ok "storage-service registered again" || bad "storage-service did not re-register"
 
 section "Post-mortem summary"
 {
-  echo "  failure injected        : container $STORAGE stopped at $(date -d @"${T0%.*}" +%T)"
+  echo "  failure injected        : $STORAGE stopped ($PLATFORM) at $(date -d @"${T0%.*}" +%T)"
   echo "  root cause identified   : $(grep -qE 'SSLERootCauseStorageDown +firing' "$EVID/1-alerts-during-failure.txt" && echo 'storage (SSLERootCauseStorageDown)' || echo 'NOT identified')"
   echo "  symptoms correlated     : $(grep -cE 'firing|pending' "$EVID/1-alerts-during-failure.txt") Prometheus alerts and $(wc -l < "$EVID/1-wazuh-alerts-100201.json") Wazuh 5xx events -> 1 root cause"
   echo "  limitations             : rules are written per dependency (storage, ingestion); a full dependency graph"

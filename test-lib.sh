@@ -22,10 +22,10 @@ elapsed() { python3 -c "print('%.1f' % ($2 - $1))"; }          # elapsed <from> 
 # Mirror all output into evidence/<name>/run.log. Call once, at the top of the test.
 start_evidence() {
   cd "$(dirname "$0")" || exit 1
-  EVID="evidence/$1"
+  EVID="evidence/$1"; [ "${PLATFORM:-incus}" = k3s ] && EVID="evidence/k3s/$1"   # k3s runs never overwrite the Incus evidence
   mkdir -p "$EVID"
   exec > >(tee "$EVID/run.log") 2>&1
-  echo "Run started $(date -Is) on $(hostname)"
+  echo "Run started $(date -Is) on $(hostname), platform ${PLATFORM:-incus}"
 }
 
 # Threat card. Args: name, description, relevance, exploitation, monitoring, response.
@@ -46,6 +46,46 @@ EOF
 
 # Container IPv4 (exact name match).
 ip_of() { incus list "^$1\$" -c4 --format csv 2>/dev/null | grep -oE '^[0-9.]+' | head -1; }
+
+# ---------------------------------------------------------------- platform: incus | k3s
+# PLATFORM=incus (default): one Incus container per service (deploy-incus.sh).
+# PLATFORM=k3s: the services run as pods in the k3s cluster (Guide 2, k3s/). The helpers below
+# hide the difference, so every test runs unchanged on both.
+PLATFORM=${PLATFORM:-incus}
+K3S_MASTER=${K3S_MASTER:-k3s-master}
+K3S_NODE1=${K3S_NODE1:-k3s-node1}
+declare -A SVC_PORT=([registry]=5050 [storage]=5002 [ingestion]=5001 [analytics]=5003)
+declare -A NODE_PORT=([ingestion]=30001 [analytics]=30003)
+is_k3s() { [ "$PLATFORM" = k3s ]; }
+kctl() { incus exec "$K3S_MASTER" -- k3s kubectl -n ssle "$@"; }
+
+# public_url <svc> [node]: the URL clients/attackers use. On k3s it is a NodePort; with
+# externalTrafficPolicy Local, the node chosen decides which location answers (master = dc1).
+public_url() {
+  if is_k3s; then echo "http://$(ip_of "${2:-$K3S_MASTER}"):${NODE_PORT[$1]}"
+  else echo "http://$(ip_of "$1"):${SVC_PORT[$1]}"; fi
+}
+# internal_url <svc>: URL of a cluster-internal service, valid where `near` runs
+internal_url() {
+  if is_k3s; then echo "http://$(kctl get svc "$1" -o jsonpath='{.spec.clusterIP}'):${SVC_PORT[$1]}"
+  else echo "http://$(ip_of "$1"):${SVC_PORT[$1]}"; fi
+}
+# near <cmd...>: run a command where internal services are reachable (a k3s node, or here)
+near() { if is_k3s; then incus exec "$K3S_MASTER" -- "$@"; else "$@"; fi; }
+# agent_box <svc>: container whose Wazuh agent watches the svc's dc1 instance and runs its
+# active responses (the service container itself, or the k3s node hosting the dc1 pod)
+agent_box() { if is_k3s; then echo "$K3S_MASTER"; else echo "$1"; fi; }
+# deploy_of <svc>: the dc1 Deployment of a service on k3s
+deploy_of() { case $1 in ingestion|analytics|sensor) echo "$1-dc1" ;; *) echo "$1" ;; esac; }
+svc_stop() {
+  if is_k3s; then kctl scale deploy "$(deploy_of "$1")" --replicas=0 >/dev/null
+  else incus stop "$1"; fi
+}
+svc_start() {
+  if is_k3s; then kctl scale deploy "$(deploy_of "$1")" --replicas=1 >/dev/null
+    kctl rollout status deploy "$(deploy_of "$1")" --timeout=120s >/dev/null
+  else incus start "$1"; fi
+}
 
 # Make sure a throw-away client container exists, runs, and has python3 + bash.
 ensure_client() {
@@ -118,7 +158,12 @@ for line in sys.stdin:
 }
 
 # ---------------------------------------------------------------- Prometheus
-prom_url() { echo "${PROM_URL:-http://$(ip_of "$PROM_CONTAINER"):9090}"; }
+# On k3s the alerting Prometheus is the one inside the cluster (NodePort 30090).
+prom_url() {
+  if [ -n "${PROM_URL:-}" ]; then echo "$PROM_URL"
+  elif is_k3s; then echo "http://$(ip_of "$K3S_MASTER"):30090"
+  else echo "http://$(ip_of "$PROM_CONTAINER"):9090"; fi
+}
 
 # prom_query '<PromQL>': one line per series.
 prom_query() {
@@ -164,8 +209,19 @@ prom_wait_firing() {
 }
 
 # ---------------------------------------------------------------- firewall (firewall-drop AR)
-# blocked <container> <ip>: is there an iptables DROP rule for that source?
-blocked() { incus exec "$1" -- iptables -L INPUT -n 2>/dev/null | grep -E "^DROP" | grep -qw "$2"; }
+# blocked <container> <ip>: is there an iptables DROP rule for that source that actually stops
+# the traffic? Service containers: INPUT (firewall-drop). k3s nodes: only raw/PREROUTING
+# (k3s-block) counts: firewall-drop also runs there, but its INPUT rule never sees NodePort
+# traffic, which kube-proxy forwards to the pods.
+blocked() {
+  local chains='iptables -S INPUT'
+  case $1 in "$K3S_MASTER"|"$K3S_NODE1") chains='iptables -t raw -S PREROUTING' ;; esac
+  incus exec "$1" -- sh -c "$chains" 2>/dev/null | grep -- "-j DROP" | grep -q -- "-s $2/32"
+}
+# firewall <container>: both chains, for the evidence files
+firewall() {
+  incus exec "$1" -- sh -c 'echo "# filter INPUT"; iptables -L INPUT -n -v; echo; echo "# raw PREROUTING"; iptables -t raw -L PREROUTING -n -v' 2>&1
+}
 
 finish() {
   echo

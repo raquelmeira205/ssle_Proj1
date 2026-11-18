@@ -46,7 +46,8 @@ incus exec "$DNS_CONTAINER" -- cmp -s "$CLEAN" "$ZONE" && ok "zone matches the g
 incus exec "$DNS_CONTAINER" -- systemctl is-active -q wazuh-agent && ok "Wazuh agent active on $DNS_CONTAINER" || bad "Wazuh agent not active on $DNS_CONTAINER"
 BASELINE=$(resolve)
 [ -n "$BASELINE" ] && ok "baseline: $DOMAIN -> $BASELINE" || { bad "baseline resolution failed"; finish; exit 1; }
-REAL=$(ip_of "${DOMAIN%%.*}")
+# on k3s the public names point at the node that publishes the NodePorts (apply-configs.sh dns)
+if is_k3s; then REAL=$(ip_of "$K3S_MASTER"); else REAL=$(ip_of "${DOMAIN%%.*}"); fi
 [ -z "$REAL" ] || { [ "$BASELINE" = "$REAL" ] && ok "zone is current ($DOMAIN is really at $REAL)" \
   || bad "zone is stale: $DOMAIN -> $BASELINE but the container is at $REAL (./apply-configs.sh dns)"; }
 

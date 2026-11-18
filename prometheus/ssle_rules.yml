@@ -56,11 +56,13 @@ groups:
         annotations:
           summary: "Ingestion/analytics cannot use storage ({{ $value | printf \"%.0f\" }} errors in 1 min)"
 
+      # "or vector(0)": on Incus a stopped container still has up == 0, but on k3s a pod scaled to
+      # zero disappears from service discovery and has no up series at all.
       - alert: SSLERootCauseStorageDown
         expr: >
           ((sum(increase(analytics_storage_errors_total[1m])) or vector(0))
            + (sum(increase(ingestion_readings_total{result="storage_error"}[1m])) or vector(0)) > 0)
-          and on() (sum(up{job="ssle-storage"}) == 0)
+          and on() ((sum(up{job="ssle-storage"}) or vector(0)) == 0)
         labels:
           severity: critical
           kind: root-cause
@@ -98,7 +100,7 @@ groups:
       - alert: SSLERootCauseIngestionDown
         expr: >
           (sum(increase(sensor_readings_sent_total{result="error"}[1m])) > 0)
-          and on() (sum(up{job="ssle-ingestion"}) == 0)
+          and on() ((sum(up{job="ssle-ingestion"}) or vector(0)) == 0)
         labels:
           severity: critical
           kind: root-cause

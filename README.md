@@ -53,7 +53,12 @@ rack > node). The same ID is used for:
 | `ddos-poc.py` | HTTP load generator used by the DDoS test |
 | `scale-tool.py` | load generator and registry benchmark used by the scalability test |
 | `prometheus/federation-example.yml` | how a central Prometheus would federate only the per-location aggregates |
-| `Dockerfile`, `docker-compose.yml`, `build-and-push.sh`, `k8s/ssle.yaml` | Docker / k3s variants (Guide 2) |
+| `Dockerfile`, `build-and-push.sh`, `docker-compose.yml` | one Docker image per service (Guide 2); compose for a quick local run |
+| `k3s/` | **Docker + Kubernetes version (Guide 2)**: cluster setup, build and deploy, Wazuh node agents; see [k3s/README.md](k3s/README.md) |
+| `k8s/ssle.yaml`, `k8s/monitoring.yaml`, `k8s/prometheus-k8s.yml` | the SSLE pods (one Deployment per location) and the in-cluster Prometheus |
+| `wazuh/active-response/k3s-block.py`, `wazuh/manager-active-response-k3s.xml` | active response that blocks NodePort traffic on the k3s nodes |
+| `prometheus/prometheus-central-k3s.yml` | central Prometheus when the services run in k3s (federation only) |
+| `test-k3s.sh` | functional test of the k3s deployment; every other test runs on k3s with `PLATFORM=k3s` |
 
 ## Deploying (on the Incus host, from the repo root)
 
@@ -67,6 +72,18 @@ rack > node). The same ID is used for:
 The manager, Prometheus, mail and DNS containers were set up by hand following the practical
 guides; their configs are in `wazuh/`, `prometheus/`, `mail/` and `dns/`. The `<active-response>`
 blocks in `wazuh/manager-active-response.xml` must be appended to the manager's `ossec.conf` once.
+
+## Docker + Kubernetes version (Guide 2)
+
+The same system also runs as Docker images in a two-node k3s cluster: `k3s-master` = dc1,
+`k3s-node1` = dc2. Prometheus runs inside the cluster and is federated by the central one, and a
+Wazuh agent on each node blocks NodePort traffic. Every test runs on it with `PLATFORM=k3s`:
+
+```bash
+./k3s/setup-cluster.sh && ./apply-configs.sh pin && ./k3s/deploy.sh
+./k3s/install-wazuh-node-agents.sh && PLATFORM=k3s ./apply-configs.sh && ./test-k3s.sh
+```
+Details, design decisions and limitations: [k3s/README.md](k3s/README.md).
 
 ## Running the threat tests
 

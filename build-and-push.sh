@@ -3,7 +3,7 @@
 # Run INSIDE the "docker" Incus container, from the folder that contains the Dockerfile.
 set -euo pipefail
 REG=docker.incus:5000
-TAG=1.0
+TAG=${TAG:-1.0}          # k3s/deploy.sh passes a unique tag (git commit) so k3s always pulls the new image
 
 # 1) private registry (restarts automatically)
 docker inspect registry >/dev/null 2>&1 || \

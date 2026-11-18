@@ -18,6 +18,9 @@
 #
 # Run on the Incus host from the repo root (needs ./apply-configs.sh prometheus first):
 #   ./test-scale.sh [--keep]        --keep leaves the dc2 instances running afterwards
+#   PLATFORM=k3s ./test-scale.sh    on k3s the dc2 instances are the dc2 pods on k3s-node1 (always
+#                                   there); a client reaches one location through that node's
+#                                   NodePort (externalTrafficPolicy Local)
 #   LOADGENS="attacker1 attacker2 legit-client" WORKERS=8 DURATION=20 SIZES=0,100,500,2000
 set -u
 source "$(dirname "$0")/test-lib.sh"
@@ -28,6 +31,7 @@ DURATION=${DURATION:-20}
 SIZES=${SIZES:-0,100,500,2000}
 NEW_DC=${NEW_DC:-dc2}
 SERVICES="registry storage ingestion analytics"
+if is_k3s; then AGENT_BOXES="$K3S_MASTER $K3S_NODE1"; else AGENT_BOXES=$SERVICES; fi
 
 start_evidence scale
 cat <<EOF
@@ -44,12 +48,13 @@ EOF
 
 # ------------------------------------------------------------------ setup
 section "0. Setup"
-REG_IP=$(ip_of registry)
-[ -n "$REG_IP" ] || { echo "registry container not found"; exit 1; }
+REG_URL=$(internal_url registry)
+[ -n "$REG_URL" ] || { echo "registry not found"; exit 1; }
+info "platform $PLATFORM, registry $REG_URL"
 for c in $LOADGENS; do ensure_client "$c"; incus file push scale-tool.py "$c/root/scale-tool.py" >/dev/null; done
-for c in $SERVICES; do incus exec "$c" -- systemctl stop wazuh-agent 2>/dev/null; done
-trap 'for c in $SERVICES; do incus exec "$c" -- systemctl start wazuh-agent 2>/dev/null; done' EXIT
-info "Wazuh agents on $SERVICES stopped for the benchmark (restarted on exit)"
+for c in $AGENT_BOXES; do incus exec "$c" -- systemctl stop wazuh-agent 2>/dev/null; done
+trap 'for c in $AGENT_BOXES; do incus exec "$c" -- systemctl start wazuh-agent 2>/dev/null; done' EXIT
+info "Wazuh agents on $AGENT_BOXES stopped for the benchmark (restarted on exit)"
 
 # deploy_extra <container> <service dir> <port> <instance>: same unit as deploy-incus.sh, other DC
 deploy_extra() {
@@ -87,31 +92,47 @@ EOF
 }
 
 EXTRA="ingestion-$NEW_DC:ingestion:5001 analytics-$NEW_DC:analytics:5003"
-for e in $EXTRA; do
-  IFS=: read -r name svc port <<<"$e"
-  deploy_extra "$name" "$svc" "$port" 02
-done
-for e in $EXTRA; do
-  IFS=: read -r name svc port <<<"$e"
-  ip=$(ip_of "$name"); up=""
-  for i in $(seq 1 30); do curl -sf --max-time 2 "http://$ip:$port/health" >/dev/null && { up=1; break; }; sleep 1; done
-  [ -n "$up" ] && ok "$name ($ip) is up in $NEW_DC" || bad "$name did not come up"
-done
-# let Prometheus scrape the new instances (file_sd, picked up without a reload)
-printf '[{"targets": ["ingestion-%s.incus:5001", "analytics-%s.incus:5003"]}]\n' "$NEW_DC" "$NEW_DC" \
-  | incus exec "$PROM_CONTAINER" -- sh -c 'cat > /etc/prometheus/scale-targets.json'
-info "waiting 20 s for registration and the first scrapes"
-sleep 20
+if is_k3s; then
+  # the dc2 Deployments already exist (k8s/ssle.yaml, nodeSelector ssle.dc=dc2)
+  for svc in ingestion analytics; do
+    if kctl rollout status deploy "$svc-$NEW_DC" --timeout=60s >/dev/null 2>&1; then
+      ok "$svc-$NEW_DC pod is running on $(kctl get pod -l app=$svc,dc=$NEW_DC -o jsonpath='{.items[0].spec.nodeName}') ($NEW_DC)"
+    else bad "$svc-$NEW_DC is not running"; fi
+  done
+  near sh -c 'command -v python3 >/dev/null' || { echo "python3 missing on $K3S_MASTER"; exit 1; }
+  incus file push scale-tool.py "$K3S_MASTER/root/scale-tool.py" >/dev/null
+else
+  for e in $EXTRA; do
+    IFS=: read -r name svc port <<<"$e"
+    deploy_extra "$name" "$svc" "$port" 02
+  done
+  for e in $EXTRA; do
+    IFS=: read -r name svc port <<<"$e"
+    ip=$(ip_of "$name"); up=""
+    for i in $(seq 1 30); do curl -sf --max-time 2 "http://$ip:$port/health" >/dev/null && { up=1; break; }; sleep 1; done
+    [ -n "$up" ] && ok "$name ($ip) is up in $NEW_DC" || bad "$name did not come up"
+  done
+  # let Prometheus scrape the new instances (file_sd, picked up without a reload)
+  printf '[{"targets": ["ingestion-%s.incus:5001", "analytics-%s.incus:5003"]}]\n' "$NEW_DC" "$NEW_DC" \
+    | incus exec "$PROM_CONTAINER" -- sh -c 'cat > /etc/prometheus/scale-targets.json'
+  info "waiting 20 s for registration and the first scrapes"
+  sleep 20
+fi
 
 # ------------------------------------------------------------------ 2. discovery
 section "1. Location-aware discovery"
-curl -s "http://$REG_IP:5050/tree" | python3 -m json.tool > "$EVID/1-registry-tree.json"
+near curl -s "$REG_URL/tree" | python3 -m json.tool > "$EVID/1-registry-tree.json"
 grep -q "\"$NEW_DC\"" "$EVID/1-registry-tree.json" && ok "/tree shows the new location $NEW_DC" || bad "$NEW_DC missing from /tree"
 for svc in ingestion analytics; do
-  got=$(curl -s "http://$REG_IP:5050/services/$svc-service?dc=$NEW_DC")
+  got=$(near curl -s "$REG_URL/services/$svc-service?dc=$NEW_DC")
   echo "$got" > "$EVID/1-lookup-$svc-$NEW_DC.json"
-  echo "$got" | grep -q "$svc-$NEW_DC" && ok "lookup $svc-service?dc=$NEW_DC -> $(echo "$got" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')" \
-    || bad "lookup $svc-service?dc=$NEW_DC did not return the $NEW_DC instance"
+  id=$(echo "$got" | python3 -c 'import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(d["id"] if d.get("location", {}).get("dc") == sys.argv[1] else "")
+except Exception:
+    print("")' "$NEW_DC")
+  [ -n "$id" ] && ok "lookup $svc-service?dc=$NEW_DC -> $id" || bad "lookup $svc-service?dc=$NEW_DC did not return a $NEW_DC instance"
 done
 
 # ------------------------------------------------------------------ 1. horizontal scaling
@@ -145,12 +166,16 @@ phase() {
 
 declare -A R
 for svc in ingestion analytics; do
-  ip1=$(ip_of "$svc"); ip2=$(ip_of "$svc-$NEW_DC")
-  case $svc in ingestion) port=5001; path=/ingest ;; analytics) port=5003; path='/stats?limit=100' ;; esac
+  case $svc in ingestion) path=/ingest ;; analytics) path='/stats?limit=100' ;; esac
+  if is_k3s; then  # one NodePort per location: master -> dc1 pod, node1 -> dc2 pod
+    u1="$(public_url "$svc" "$K3S_MASTER")$path"; u2="$(public_url "$svc" "$K3S_NODE1")$path"
+  else
+    u1="http://$(ip_of "$svc"):${SVC_PORT[$svc]}$path"; u2="http://$(ip_of "$svc-$NEW_DC"):${SVC_PORT[$svc]}$path"
+  fi
   section "2. Horizontal scaling: $svc"
-  phase "$svc" 1-instance "http://$ip1:$port$path"
+  phase "$svc" 1-instance "$u1"
   R[$svc-1]=$RPS; R[$svc-1p95]=$P95
-  phase "$svc" 2-instances "http://$ip1:$port$path,http://$ip2:$port$path"
+  phase "$svc" 2-instances "$u1,$u2"
   R[$svc-2]=$RPS; R[$svc-2p95]=$P95
   SPEEDUP=$(python3 -c "a,b=${R[$svc-1]},${R[$svc-2]}; print('%.2f' % (b/a) if a else 0)")
   R[$svc-x]=$SPEEDUP
@@ -161,7 +186,11 @@ done
 
 # ------------------------------------------------------------------ 3. registry growth
 section "3. Registry growth (fake instances, sizes $SIZES)"
-python3 scale-tool.py registry --registry "http://$REG_IP:5050" --sizes "$SIZES" | tee "$EVID/3-registry.txt"
+if is_k3s; then  # the registry is ClusterIP-only: run the benchmark on a node
+  near python3 /root/scale-tool.py registry --registry "$REG_URL" --sizes "$SIZES" | tee "$EVID/3-registry.txt"
+else
+  python3 scale-tool.py registry --registry "$REG_URL" --sizes "$SIZES" | tee "$EVID/3-registry.txt"
+fi
 LAST=$(grep '^RESULT' "$EVID/3-registry.txt" | tail -1)
 ALL_B=$(echo "$LAST" | grep -oE 'all_bytes=[0-9]+' | cut -d= -f2)
 DC_B=$(echo "$LAST" | grep -oE ' dc_bytes=[0-9]+' | cut -d= -f2)
@@ -177,8 +206,7 @@ PROM=$(prom_url)
 {
   echo "bytes of one full scrape (/metrics):"
   for c in $SERVICES; do
-    case $c in registry) p=5050 ;; storage) p=5002 ;; ingestion) p=5001 ;; analytics) p=5003 ;; esac
-    printf "    %-10s %8s bytes\n" "$c" "$(curl -s -o /dev/null -w '%{size_download}' "http://$(ip_of "$c"):$p/metrics")"
+    printf "    %-10s %8s bytes\n" "$c" "$(near curl -s -o /dev/null -w '%{size_download}' "$(internal_url "$c")/metrics")"
   done
   RAW=$(curl -s -G -o /dev/null -w '%{size_download}' "$PROM/federate" --data-urlencode 'match[]={job=~"ssle-.+"}')
   RAWZ=$(curl -s -G --compressed -o /dev/null -w '%{size_download}' "$PROM/federate" --data-urlencode 'match[]={job=~"ssle-.+"}')
@@ -200,7 +228,9 @@ fi
 
 # ------------------------------------------------------------------ cleanup
 section "5. Cleanup"
-if [ "${1:-}" = "--keep" ]; then
+if is_k3s; then
+  info "k3s: the $NEW_DC pods are part of the normal deployment, nothing to remove"
+elif [ "${1:-}" = "--keep" ]; then
   info "--keep: $NEW_DC instances left running"
 else
   printf '[]\n' | incus exec "$PROM_CONTAINER" -- sh -c 'cat > /etc/prometheus/scale-targets.json'
@@ -222,7 +252,8 @@ section "Summary"
   echo "   - analytics only reads, so it should scale better until storage reads saturate"
   echo "   - the registry is in memory: lookups stay fast, but /services without a filter grows"
   echo "     linearly and the health checker pings every instance one by one (O(N) per sweep)"
-  echo "   - all instances run on one physical host, so 'dc2' is a logical location: absolute"
+  echo "   - all instances run on one physical host (on k3s: two k3s nodes = two Incus containers"
+  echo "     on it), so 'dc2' is a logical location: absolute"
   echo "     numbers are lower bounds, the trends are what matters"
 } | tee "$EVID/summary.txt"
 

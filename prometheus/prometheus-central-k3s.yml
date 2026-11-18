@@ -1,0 +1,26 @@
+# Central Prometheus (prometheus-container) when the SSLE services run in k3s
+# (`PLATFORM=k3s ./apply-configs.sh prometheus` pushes this instead of prometheus.yml).
+#
+# Two levels, the federation design of prometheus/federation-example.yml made real:
+#   - the Prometheus INSIDE the cluster (k8s/monitoring.yaml) scrapes every pod and evaluates
+#     ssle_rules.yml (alerts, root cause, per-location aggregates)
+#   - this one only pulls the per-location aggregates and the active alerts from it, so the traffic
+#     between the two grows with the number of locations, not with the number of pods
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'ssle-central'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'federate-k3s'
+    honor_labels: true
+    metrics_path: /federate
+    params:
+      'match[]': ['{__name__=~"location:.+"}', '{__name__="ALERTS"}']
+    static_configs:
+      - targets: ['k3s-master.incus:30090']

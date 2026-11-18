@@ -1,0 +1,56 @@
+# Prometheus inside the cluster (applied by k3s/deploy.sh after the "prometheus-config" ConfigMap,
+# which holds k8s/prometheus-k8s.yml as prometheus.yml and prometheus/ssle_rules.yml).
+# Published on NodePort 30090 so the central prometheus-container can federate it.
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: prometheus, namespace: ssle }
+---
+# read-only access to the pods of the ssle namespace (service discovery), nothing else
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: prometheus-discovery, namespace: ssle }
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: prometheus-discovery, namespace: ssle }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: prometheus-discovery }
+subjects: [{ kind: ServiceAccount, name: prometheus, namespace: ssle }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: prometheus, namespace: ssle, labels: { app: prometheus } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: prometheus } }
+  template:
+    metadata:
+      labels: { app: prometheus }
+      annotations: { config-version: "__CONFIG_HASH__" }   # changes when the config changes -> rollout
+    spec:
+      serviceAccountName: prometheus
+      nodeSelector: { ssle.dc: dc1 }
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.53.0
+          args: [--config.file=/etc/prometheus/prometheus.yml, --storage.tsdb.retention.time=2d, --web.enable-lifecycle]
+          ports: [{ containerPort: 9090 }]
+          readinessProbe: { httpGet: { path: /-/ready, port: 9090 }, periodSeconds: 5 }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts: [{ name: config, mountPath: /etc/prometheus }]
+      volumes:
+        - name: config
+          configMap: { name: prometheus-config }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: prometheus, namespace: ssle }
+spec:
+  type: NodePort
+  selector: { app: prometheus }
+  ports: [{ port: 9090, targetPort: 9090, nodePort: 30090 }]

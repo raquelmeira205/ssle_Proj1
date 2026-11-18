@@ -15,20 +15,24 @@
 # below the rule's threshold (15 requests in 10 s from one IP).
 #
 # Run on the Incus host from the repo root:   ./test-ddos.sh  [--no-wait]
-#   TARGET=analytics PORT=5003 ENDPOINT='/stats?limit=1000'
+#   TARGET=analytics ENDPOINT='/stats?limit=1000'
+#   PLATFORM=k3s   attack the k3s deployment instead: the target is the NodePort on k3s-master
+#                  (dc1 pod), the agent and the k3s-block response are on that node
 #   ATTACKERS="attacker1 attacker2"  LEGIT=legit-client  ATTACK_SECS=25  ATTACK_WORKERS=20
 set -u
 source "$(dirname "$0")/test-lib.sh"
 
 TARGET=${TARGET:-analytics}
-PORT=${PORT:-5003}
 ENDPOINT=${ENDPOINT:-/stats?limit=1000}
 ATTACKERS=${ATTACKERS:-"attacker1 attacker2"}
 LEGIT=${LEGIT:-legit-client}
 ATTACK_SECS=${ATTACK_SECS:-25}
 ATTACK_WORKERS=${ATTACK_WORKERS:-20}
 BLOCK_SECS=60                        # <timeout> of the firewall-drop response for rule 100210
-SVC_JOB=${SVC_JOB:-ssle-$TARGET}     # Prometheus job of the target
+SVC_JOB=${SVC_JOB:-ssle-$TARGET}     # Prometheus job of the target (same name on k3s)
+BOX=$(agent_box "$TARGET")           # container whose Wazuh agent + firewall protect the target
+if is_k3s; then RESP="k3s-block (iptables raw/PREROUTING on the node, before kube-proxy)"
+else RESP="firewall-drop (iptables INPUT in the service container)"; fi
 
 start_evidence ddos
 threat_card "Massive denial-of-service (HTTP flood)" \
@@ -36,14 +40,14 @@ threat_card "Massive denial-of-service (HTTP flood)" \
   "Analytics /stats reads up to 1000 rows from storage on every call; ingestion is the only entry point for sensor data. Saturating them stops the whole pipeline for every location." \
   "Attackers loop on an expensive, unauthenticated endpoint ($ENDPOINT) with many parallel connections; no credentials needed." \
   "Wazuh: JSON access log, rule 100200 per request, rule 100210 = 15 requests in 10 s from the same srcip. Prometheus: http_requests_total rate, p95 of http_request_duration_seconds, http_requests_in_progress (alerts SSLEHighRequestRate / SSLEHighP95Latency / SSLEHighConcurrentRequests)." \
-  "firewall-drop active response on the attacked agent: iptables DROP of the source IP for ${BLOCK_SECS} s, then automatic unblock."
+  "$RESP on the agent that saw the flood: DROP of the source IP for ${BLOCK_SECS} s, then automatic unblock."
 
 # ------------------------------------------------------------------ setup
 section "0. Setup"
-TARGET_IP=$(ip_of "$TARGET")
-[ -n "$TARGET_IP" ] || { echo "Could not find the IP of '$TARGET'"; exit 1; }
-URL="http://$TARGET_IP:$PORT$ENDPOINT"
-info "target $TARGET = $URL"
+BASE=$(public_url "$TARGET")
+[ -n "${BASE#http://}" ] && [ "${BASE#http://:}" = "$BASE" ] || { echo "Could not find the address of '$TARGET'"; exit 1; }
+URL="$BASE$ENDPOINT"
+info "platform $PLATFORM, target $TARGET = $URL, protected by the agent in $BOX"
 declare -A IP=()
 for c in $ATTACKERS $LEGIT; do
   ensure_client "$c"
@@ -52,9 +56,9 @@ for c in $ATTACKERS $LEGIT; do
   info "$c = ${IP[$c]}"
 done
 LEGIT_IP=${IP[$LEGIT]}
-if incus exec "$TARGET" -- systemctl is-active -q wazuh-agent; then ok "Wazuh agent active on $TARGET"; else bad "Wazuh agent not active on $TARGET"; fi
+if incus exec "$BOX" -- systemctl is-active -q wazuh-agent; then ok "Wazuh agent active on $BOX"; else bad "Wazuh agent not active on $BOX"; fi
 for c in $ATTACKERS $LEGIT; do
-  for i in $(seq 1 70); do blocked "$TARGET" "${IP[$c]}" || break; [ "$i" = 1 ] && info "${IP[$c]} still blocked from a previous run, waiting"; sleep 1; done
+  for i in $(seq 1 70); do blocked "$BOX" "${IP[$c]}" || break; [ "$i" = 1 ] && info "${IP[$c]} still blocked from a previous run, waiting"; sleep 1; done
 done
 
 # poc <container> <label> <seconds> <workers> <delay> <outfile>
@@ -87,34 +91,34 @@ cat "$EVID/1-baseline-legit.txt"
 [ "$(res "$EVID/1-baseline-legit.txt" failed)" = 0 ] && ok "baseline: every request answered" || bad "baseline already has failures"
 
 # ------------------------------------------------------------------ 2. unmitigated
-section "2. Unmitigated attack: ${ATTACK_WORKERS} workers x $(echo $ATTACKERS | wc -w) attackers, Wazuh agent on $TARGET stopped"
-incus exec "$TARGET" -- systemctl stop wazuh-agent
-trap 'incus exec "$TARGET" -- systemctl start wazuh-agent' EXIT
+section "2. Unmitigated attack: ${ATTACK_WORKERS} workers x $(echo $ATTACKERS | wc -w) attackers, Wazuh agent on $BOX stopped"
+incus exec "$BOX" -- systemctl stop wazuh-agent
+trap 'incus exec "$BOX" -- systemctl start wazuh-agent' EXIT
 attack 2-unmitigated
 wait
 cat "$EVID/2-unmitigated-legit.txt" "$EVID/2-unmitigated-prometheus.txt"
 grep -q "SSLEHighRequestRate" "$EVID/2-unmitigated-prometheus.txt" \
   && ok "Prometheus raised SSLEHighRequestRate during the attack" || bad "Prometheus did not raise SSLEHighRequestRate"
-incus exec "$TARGET" -- systemctl start wazuh-agent
+incus exec "$BOX" -- systemctl start wazuh-agent
 info "Wazuh agent restarted, waiting 20 s for it to reconnect"
 sleep 20
 
 # ------------------------------------------------------------------ 3. mitigated
-section "3. Mitigated attack: same attack with Wazuh detection + firewall-drop"
+section "3. Mitigated attack: same attack with Wazuh detection + active response"
 MARK=$(alerts_mark)
-AR_LINES=$(incus exec "$TARGET" -- sh -c 'wc -l < /var/ossec/logs/active-responses.log' 2>/dev/null || echo 0)
+AR_LINES=$(incus exec "$BOX" -- sh -c 'wc -l < /var/ossec/logs/active-responses.log' 2>/dev/null || echo 0)
 T0=$(now)
 attack 3-mitigated &
 ATTACK_PID=$!
 declare -A BLOCKED_AT=()
 for i in $(seq 1 $((ATTACK_SECS * 2))); do
   for a in $ATTACKERS; do
-    [ -z "${BLOCKED_AT[$a]:-}" ] && blocked "$TARGET" "${IP[$a]}" && BLOCKED_AT[$a]=$(now)
+    [ -z "${BLOCKED_AT[$a]:-}" ] && blocked "$BOX" "${IP[$a]}" && BLOCKED_AT[$a]=$(now)
   done
   [ ${#BLOCKED_AT[@]} -eq $(echo $ATTACKERS | wc -w) ] && break
   sleep 0.5
 done
-incus exec "$TARGET" -- iptables -L INPUT -n -v > "$EVID/3-iptables-during-block.txt" 2>&1
+firewall "$BOX" > "$EVID/3-iptables-during-block.txt"
 wait "$ATTACK_PID"
 wait
 cat "$EVID/3-mitigated-legit.txt" "$EVID/3-mitigated-prometheus.txt"
@@ -133,36 +137,40 @@ DETECT=$([ -n "$FIRST" ] && elapsed "$T0" "$FIRST" || echo "n/a")
 info "time from attack start to first alert: ${DETECT} s"
 
 # Pipeline check: if the target's agent ships no access-log events, nothing above can fire.
-N=$(alerts_since "$MARK" 100200 | grep -c "\"name\":\"$TARGET-service")
+# (matched on the logged service name, which is the same on Incus and on k3s)
+N=$(alerts_since "$MARK" 100200 | grep -c "\"service\":\"$TARGET-service\"")
 if [ "$N" -gt 0 ]; then
   ok "$N access-log events from $TARGET's agent reached the manager"
 else
   bad "no access-log events from $TARGET's agent reached the manager"
-  info "manager view: $(incus exec "$WAZUH_CONTAINER" -- /var/ossec/bin/agent_control -l 2>/dev/null | grep -i "$TARGET-service")"
-  info "access log in the agent config:"; incus exec "$TARGET" -- grep -n "access.log" /var/ossec/etc/ossec.conf | sed 's/^/        /'
-  info "agent log:"; incus exec "$TARGET" -- tail -n 8 /var/ossec/logs/ossec.log | sed 's/^/        /'
+  info "manager view: $(incus exec "$WAZUH_CONTAINER" -- /var/ossec/bin/agent_control -l 2>/dev/null | grep -iE "$TARGET|$BOX")"
+  info "access log in the agent config:"; incus exec "$BOX" -- grep -n "access.log" /var/ossec/etc/ossec.conf | sed 's/^/        /'
+  info "agent log:"; incus exec "$BOX" -- tail -n 8 /var/ossec/logs/ossec.log | sed 's/^/        /'
 fi
 
-# Internal calls are not an attack: no SSLE service may be blocked by another service's agent.
+# Internal calls are not an attack: the only addresses blocked anywhere (rule 651 "host blocked",
+# any agent) must be the attackers'. Catches services (or k3s pods) blocking each other.
 alerts_since "$MARK" 651 > "$EVID/3-wazuh-alerts-651.json"
-INTERNAL=0
-for s in registry storage ingestion analytics; do
-  sip=$(ip_of "$s"); [ -n "$sip" ] || continue
-  if grep -q "\"srcip\":\"$sip\"" "$EVID/3-wazuh-alerts-651.json"; then
-    bad "service $s ($sip) was blocked by another service's agent (internal traffic treated as an attack)"
-    INTERNAL=1
-  fi
-done
-[ "$INTERNAL" = 0 ] && ok "no SSLE service was blocked by another service"
+OTHERS=$(python3 -c '
+import sys, json
+attackers = set(sys.argv[2:])
+seen = set()
+for line in open(sys.argv[1]):
+    try: ip = json.loads(line).get("data", {}).get("srcip")
+    except ValueError: continue
+    if ip and ip not in attackers: seen.add(ip)
+print(" ".join(sorted(seen)))
+' "$EVID/3-wazuh-alerts-651.json" $(for a in $ATTACKERS; do echo "${IP[$a]}"; done))
+[ -z "$OTHERS" ] && ok "only the attackers were blocked (no service or pod blocked another)"                  || bad "non-attacker addresses were blocked: $OTHERS (internal traffic treated as an attack?)"
 
-section "3b. Response (firewall-drop on $TARGET)"
+section "3b. Response ($RESP, on $BOX)"
 cat "$EVID/3-iptables-during-block.txt"
-incus exec "$TARGET" -- sh -c "tail -n +$((AR_LINES + 1)) /var/ossec/logs/active-responses.log" > "$EVID/3-active-responses.log" 2>/dev/null
+incus exec "$BOX" -- sh -c "tail -n +$((AR_LINES + 1)) /var/ossec/logs/active-responses.log" > "$EVID/3-active-responses.log" 2>/dev/null
 for a in $ATTACKERS; do
   if [ -n "${BLOCKED_AT[$a]:-}" ]; then ok "attacker $a (${IP[$a]}) blocked $(elapsed "$T0" "${BLOCKED_AT[$a]}") s after the attack started"
   else bad "attacker $a (${IP[$a]}) was never blocked"; fi
   grep -q "\"command\":\"add\".*${IP[$a]}" "$EVID/3-active-responses.log" \
-    && ok "active-responses.log shows firewall-drop add for ${IP[$a]}" || bad "no firewall-drop add for ${IP[$a]} in active-responses.log"
+    && ok "active-responses.log on $BOX shows the add for ${IP[$a]}" || bad "no active-response add for ${IP[$a]} in $BOX's active-responses.log"
 done
 grep -qw "$LEGIT_IP" "$EVID/3-iptables-during-block.txt" \
   && bad "legitimate client $LEGIT_IP is in the firewall" || ok "legitimate client $LEGIT_IP is not blocked"
@@ -177,9 +185,9 @@ U_PCT=$(pct "$U_OK" "$U_F"); M_PCT=$(pct "$M_OK" "$M_F")
 section "4. Recovery: block removed after ${BLOCK_SECS} s (skip with --no-wait)"
 if [ "${1:-}" != "--no-wait" ]; then
   sleep $((BLOCK_SECS + 10))
-  incus exec "$TARGET" -- iptables -L INPUT -n -v > "$EVID/4-iptables-after-timeout.txt" 2>&1
+  firewall "$BOX" > "$EVID/4-iptables-after-timeout.txt"
   for a in $ATTACKERS; do
-    blocked "$TARGET" "${IP[$a]}" && bad "${IP[$a]} still blocked after the timeout" || ok "${IP[$a]} unblocked after the timeout"
+    blocked "$BOX" "${IP[$a]}" && bad "${IP[$a]} still blocked after the timeout" || ok "${IP[$a]} unblocked after the timeout"
   done
   first=$(echo $ATTACKERS | cut -d' ' -f1)
   poc "$first" "Attacker after unblock" 3 1 1 "$EVID/4-recovery-$first.txt"
