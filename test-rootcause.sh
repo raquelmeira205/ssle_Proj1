@@ -57,8 +57,15 @@ grep -qE "SSLEInstanceDown +firing +job=ssle-storage" "$EVID/1-alerts-during-fai
   echo "registry instances of storage:"; prom_query 'registry_instances{service="storage-service"}'
 } | tee "$EVID/1-prometheus-symptoms.txt"
 
-code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://$REG_IP:5050/services/storage-service")
-[ "$code" = 404 ] && ok "registry removed the dead storage instance (HTTP 404)" || bad "registry still returns storage-service (HTTP $code)"
+# The registry needs 2 failed health checks 10 s apart (up to ~30 s), which can be slower than
+# Prometheus naming the root cause, so wait for it instead of checking once.
+for i in $(seq 1 45); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://$REG_IP:5050/services/storage-service")
+  [ "$code" = 404 ] && break
+  sleep 1
+done
+[ "$code" = 404 ] && ok "registry removed the dead storage instance (HTTP 404) $(elapsed "$T0" "$(now)") s after the failure" \
+                  || bad "registry still returns storage-service after 45 s (HTTP $code)"
 
 section "1a. SIEM view: HTTP 5xx events per service/location (Wazuh rule 100201)"
 alerts_since "$MARK" 100201 > "$EVID/1-wazuh-alerts-100201.json"
