@@ -1,4 +1,4 @@
-    SSLEInstanceDown                 firing   job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:40:16
-    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:40:16
-    SSLERootCauseStorageDown         firing   job=-                root_cause=storage  since 2026-11-18T16:40:51
-    SSLEStorageNotRegistered         pending  job=-                root_cause=-        since 2026-11-18T16:40:46
+    SSLEHighP95Latency               pending  job=ssle-analytics   root_cause=-        since 2026-11-18T16:46:08
+    SSLEInstanceDown                 pending  job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:46:11
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:46:11
+    SSLERootCauseStorageDown         firing   job=-                root_cause=storage  since 2026-11-18T16:46:11

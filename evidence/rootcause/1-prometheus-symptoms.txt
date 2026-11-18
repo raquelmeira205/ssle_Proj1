@@ -1,5 +1,5 @@
 storage errors seen by dependents (1 min):
-    {instance=analytics.incus:5003,job=ssle-analytics} 10.908892565589717
-    {instance=ingestion.incus:5001,job=ssle-ingestion,result=storage_error} 6.545454545454545
+    {instance=analytics.incus:5003,job=ssle-analytics} 1.0913257789337747
+    {instance=ingestion.incus:5001,job=ssle-ingestion,result=storage_error} 1.0913853317811408
 registry instances of storage:
-    (no data)
+    {country=pt,dc=dc1,instance=registry.incus:5050,job=ssle-registry,node=kali,rack=rack1,region=centro,service=storage-service} 1

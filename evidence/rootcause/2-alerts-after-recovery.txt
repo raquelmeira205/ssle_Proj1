@@ -1,2 +1,4 @@
-    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:40:16
-    SSLERootCauseStorageUnreachable  pending  job=-                root_cause=network-or-discovery since 2026-11-18T16:41:01
+    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-18T16:46:13
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:46:08
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:46:11
+    SSLERootCauseStorageUnreachable  pending  job=-                root_cause=network-or-discovery since 2026-11-18T16:46:21
