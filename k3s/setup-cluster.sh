@@ -36,14 +36,28 @@ fi
 
 # ------------------------------------------------------------------ 3.2 privileged profile
 step "3.2 Profile k3s (privileged + nesting, needed to run k3s/Docker inside a container)"
-incus profile show k3s >/dev/null 2>&1 || incus profile create k3s
-incus profile set k3s security.privileged=true security.nesting=true \
-  linux.kernel_modules=ip_tables,ip6_tables,nf_nat,overlay,br_netfilter
-incus profile set k3s raw.lxc="$(printf 'lxc.apparmor.profile=unconfined\nlxc.cgroup.devices.allow=a *:* rwm\nlxc.cap.drop=')"
-incus profile device show k3s | grep -q '^kmsg:' || incus profile device add k3s kmsg unix-char source=/dev/kmsg path=/dev/kmsg
-incus profile device show k3s | grep -q '^eth0:' || incus profile device add k3s eth0 nic network="$NET" name=eth0
-incus profile device show k3s | grep -q '^root:' || incus profile device add k3s root disk path=/ pool=default
-echo "  ok (note for the report: privileged containers widen the attack surface of the host)"
+if incus profile show k3s >/dev/null 2>&1; then
+  # An existing profile is NEVER rewritten: containers already use it (e.g. "docker" from the
+  # guide) and changing raw.lxc re-applies it to them live. Setting the guide's exact raw.lxc on
+  # a profile that had been adapted to this host failed with "loading config file for the
+  # container failed". Only check that the essentials are there.
+  echo "  profile k3s exists, left unchanged:"
+  incus profile get k3s security.privileged | grep -qx true && echo "    security.privileged=true" || echo "    WARNING: security.privileged is not true"
+  incus profile get k3s security.nesting | grep -qx true && echo "    security.nesting=true" || echo "    WARNING: security.nesting is not true"
+  for d in kmsg eth0 root; do
+    incus profile device show k3s | grep -q "^$d:" && echo "    device $d" || echo "    WARNING: device $d missing"
+  done
+else
+  incus profile create k3s
+  incus profile set k3s security.privileged=true security.nesting=true \
+    linux.kernel_modules=ip_tables,ip6_tables,nf_nat,overlay,br_netfilter
+  incus profile set k3s raw.lxc="$(printf 'lxc.apparmor.profile=unconfined\nlxc.cgroup.devices.allow=a *:* rwm\nlxc.cap.drop=')"
+  incus profile device add k3s kmsg unix-char source=/dev/kmsg path=/dev/kmsg
+  incus profile device add k3s eth0 nic network="$NET" name=eth0
+  incus profile device add k3s root disk path=/ pool=default
+  echo "  created as in the guide"
+fi
+echo "  (note for the report: privileged containers widen the attack surface of the host)"
 
 # ------------------------------------------------------------------ 3.3 k3s cluster
 step "3.3 Kernel options for k3s (on this VM)"
