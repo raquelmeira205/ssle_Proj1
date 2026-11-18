@@ -1,4 +1,4 @@
-Run started 2026-11-18T11:45:56-05:00 on kali
+Run started 2026-11-18T11:50:59-05:00 on kali
 
 ################################################################################
  THREAT: Service failure -> root-cause detection (fault management)
@@ -22,19 +22,18 @@ Run started 2026-11-18T11:45:56-05:00 on kali
   PASS  no root-cause alert before the failure
 
 == 1. Failure: stopping container storage
-  PASS  SSLERootCauseStorageDown firing 14.6 s after the failure
-    SSLEHighP95Latency               pending  job=ssle-analytics   root_cause=-        since 2026-11-18T16:46:08
-    SSLEInstanceDown                 pending  job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:46:11
-    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:46:11
-    SSLERootCauseStorageDown         firing   job=-                root_cause=storage  since 2026-11-18T16:46:11
+  PASS  SSLERootCauseStorageDown firing 11.3 s after the failure
+    SSLEInstanceDown                 pending  job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:51:11
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:51:11
+    SSLERootCauseStorageDown         firing   job=-                root_cause=storage  since 2026-11-18T16:51:11
   PASS  network/discovery not blamed (correct diagnosis)
   ....  SSLEInstanceDown for ssle-storage not firing yet
 storage errors seen by dependents (1 min):
-    {instance=analytics.incus:5003,job=ssle-analytics} 1.0913257789337747
-    {instance=ingestion.incus:5001,job=ssle-ingestion,result=storage_error} 1.0913853317811408
+    {instance=analytics.incus:5003,job=ssle-analytics} 1.0909090909090908
+    {instance=ingestion.incus:5001,job=ssle-ingestion,result=storage_error} 1.0907504363001745
 registry instances of storage:
     {country=pt,dc=dc1,instance=registry.incus:5050,job=ssle-registry,node=kali,rack=rack1,region=centro,service=storage-service} 1
-  FAIL  registry still returns storage-service (HTTP 200)
+  PASS  registry removed the dead storage instance (HTTP 404) 20.8 s after the failure
 
 == 1a. SIEM view: HTTP 5xx events per service/location (Wazuh rule 100201)
   PASS  Wazuh recorded 3 HTTP 5xx events
@@ -42,22 +41,22 @@ registry instances of storage:
        1 x  ingestion-service-01.kali.rack1.dc1.centro.pt                /ingest
 
 == 2. Recovery: starting storage
-    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-18T16:46:13
-    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:46:08
-    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:46:11
-    SSLERootCauseStorageUnreachable  pending  job=-                root_cause=network-or-discovery since 2026-11-18T16:46:21
-  PASS  root-cause alert cleared 9.8 s after storage restarted
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-18T16:51:13
+    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-18T16:51:13
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-18T16:51:11
+    SSLERootCauseStorageUnreachable  pending  job=-                root_cause=network-or-discovery since 2026-11-18T16:51:31
+  PASS  root-cause alert cleared 10.8 s after storage restarted
   PASS  storage-service registered again
 
 == Post-mortem summary
-  failure injected        : container storage stopped at 11:45:56
+  failure injected        : container storage stopped at 11:51:00
   root cause identified   : storage (SSLERootCauseStorageDown)
-  symptoms correlated     : 4 Prometheus alerts and 3 Wazuh 5xx events -> 1 root cause
+  symptoms correlated     : 3 Prometheus alerts and 3 Wazuh 5xx events -> 1 root cause
   limitations             : rules are written per dependency (storage, ingestion); a full dependency graph
                             (or Alertmanager inhibition) would generalise it; the 1 min increase() window
                             delays clearing after recovery.
 
 ========================================
-Result: 7 passed, 1 failed
+Result: 8 passed, 0 failed
 Evidence saved in evidence/rootcause/
 ========================================
