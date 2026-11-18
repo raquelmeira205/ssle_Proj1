@@ -1,0 +1,4 @@
+    11:13:16.167 (t-1.99s)  no answer
+    answers: 26 total, 0 pointed to the attacker, 26 failed
+EXPOSURE 0.00
+FINAL no answer

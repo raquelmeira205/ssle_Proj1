@@ -1,0 +1,7 @@
+=== Legitimate client during 3-mitigated attack (22.0s) ===
+  Total requests : 8 (OK: 1, Failed/Blocked: 7)
+  Throughput     : 0.05 ok req/s (0.36 total req/s)
+  Latency p50    : 2002.66 ms
+  Latency p95    : 2007.28 ms
+RESULT ok=1 failed=7 p50=2003 p95=2007
+

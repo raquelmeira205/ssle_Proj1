@@ -1,0 +1,63 @@
+Run started 2026-11-18T11:21:47-05:00 on kali
+
+################################################################################
+ THREAT: Service failure -> root-cause detection (fault management)
+################################################################################
+ Description   : A dependency (storage) fails; every service that uses it starts failing too, producing many unrelated-looking alarms.
+ Why relevant  : Storage is the single writer of all readings; when it fails ingestion and analytics both return errors and operators see alarms from several locations at once.
+ Exploitation  : Crash, resource exhaustion (e.g. after a DoS), or an attacker stopping the service.
+ Monitoring    : Prometheus: up, analytics_storage_errors_total, ingestion_readings_total{result=storage_error}, registry_instances. Wazuh: rule 100201 (HTTP 5xx) per agent with its hierarchical ID.
+ Action-resp.  : Correlation rule SSLERootCauseStorageDown names storage as the cause; the registry stops handing out the dead instance; recovery is checked when storage comes back.
+################################################################################
+
+== 0. Baseline
+  ....  Prometheus at http://10.255.255.143:9090
+    {instance=10.255.255.208:5050,job=ssle-registry} 1
+    {instance=10.255.255.133:5003,job=ssle-analytics} 0
+    {instance=10.255.255.49:5002,job=ssle-storage} 1
+    {instance=10.255.255.68:5001,job=ssle-ingestion} 0
+    {instance=10.255.255.26:8000,job=ssle-sensor} 1
+  FAIL  some targets are already down
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+  PASS  no root-cause alert before the failure
+
+== 1. Failure: stopping container storage
+  FAIL  SSLERootCauseStorageDown did not fire within 120 s
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:22:01
+    SSLEStorageNotRegistered         firing   job=-                root_cause=-        since 2026-11-18T16:22:11
+  PASS  network/discovery not blamed (correct diagnosis)
+  PASS  SSLEInstanceDown points at ssle-storage
+storage errors seen by dependents (1 min):
+    (no data)
+    (no data)
+registry instances of storage:
+    (no data)
+  PASS  registry removed the dead storage instance (HTTP 404)
+
+== 1a. SIEM view: HTTP 5xx events per service/location (Wazuh rule 100201)
+  PASS  Wazuh recorded 65 HTTP 5xx events
+      39 x  analytics-service-01.kali.rack1.dc1.centro.pt                /stats
+      26 x  ingestion-service-01.kali.rack1.dc1.centro.pt                /ingest
+
+== 2. Recovery: starting storage
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:22:01
+  PASS  root-cause alert cleared 8.6 s after storage restarted
+  PASS  storage-service registered again
+
+== Post-mortem summary
+  failure injected        : container storage stopped at 11:21:47
+  root cause identified   : NOT identified
+  symptoms correlated     : 4 Prometheus alerts and 65 Wazuh 5xx events -> 1 root cause
+  limitations             : rules are written per dependency (storage, ingestion); a full dependency graph
+                            (or Alertmanager inhibition) would generalise it; the 1 min increase() window
+                            delays clearing after recovery.
+
+========================================
+Result: 7 passed, 2 failed
+Evidence saved in evidence/rootcause/
+========================================

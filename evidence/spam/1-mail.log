@@ -1,0 +1,21 @@
+Nov 18 16:19:34 mail-container postfix/smtpd[1812]: connect from legit-client.incus[10.255.255.156]
+Nov 18 16:19:35 mail-container postfix/smtpd[1812]: 267A73AC587: client=legit-client.incus[10.255.255.156]
+Nov 18 16:19:35 mail-container postfix/cleanup[1818]: 267A73AC587: message-id=<1795018775758485349@client.test>
+Nov 18 16:19:35 mail-container postfix/qmgr[1769]: 267A73AC587: from=<alice@client.test>, size=449, nrcpt=1 (queue active)
+Nov 18 16:19:36 mail-container spamd[765]: spamd: connection from ::1 [::1]:45338 to port 783, fd 5
+Nov 18 16:19:36 mail-container spamd[765]: spamd: setuid to spamd succeeded
+Nov 18 16:19:36 mail-container spamd[765]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 18 16:19:36 mail-container postfix/smtpd[1812]: disconnect from legit-client.incus[10.255.255.156] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Nov 18 16:19:36 mail-container spamd[765]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 18 16:19:36 mail-container spamd[765]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 18 16:19:36 mail-container spamd[765]: spamd: processing message <1795018775758485349@client.test> for spamd:999
+Nov 18 16:19:38 mail-container spamd[765]: spamd: clean message (0.3/5.0) for spamd:999 in 3.0 seconds, 472 bytes.
+Nov 18 16:19:38 mail-container spamd[765]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=3.0,size=472,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=45338,mid=<1795018775758485349@client.test>,autolearn=no autolearn_force=no
+Nov 18 16:19:38 mail-container postfix/pipe[1819]: 267A73AC587: to=<root@mail-container>, relay=spamassassin, delay=4.1, delays=0.94/0.01/0/3.2, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 18 16:19:38 mail-container postfix/pickup[1768]: ED8973ACE9F: uid=999 from=<alice@client.test>
+Nov 18 16:19:38 mail-container postfix/qmgr[1769]: 267A73AC587: removed
+Nov 18 16:19:38 mail-container postfix/cleanup[1818]: ED8973ACE9F: message-id=<1795018775758485349@client.test>
+Nov 18 16:19:38 mail-container postfix/qmgr[1769]: ED8973ACE9F: from=<alice@client.test>, size=818, nrcpt=1 (queue active)
+Nov 18 16:19:38 mail-container postfix/local[1829]: ED8973ACE9F: to=<root@mail-container>, relay=local, delay=0.02, delays=0.01/0.01/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 18 16:19:38 mail-container postfix/qmgr[1769]: ED8973ACE9F: removed
+Nov 18 16:19:39 mail-container spamd[316]: prefork: child states: II

@@ -1,0 +1,2 @@
+      39 x  analytics-service-01.kali.rack1.dc1.centro.pt                /stats
+      26 x  ingestion-service-01.kali.rack1.dc1.centro.pt                /ingest

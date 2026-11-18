@@ -1,0 +1,45 @@
+Nov 18 16:19:46 mail-container postfix/smtpd[1812]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1851]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1852]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1853]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1854]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1855]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1856]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1858]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1859]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1860]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1861]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:46 mail-container postfix/smtpd[1862]: connect from attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1812]: 194E03ACE79: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1853]: 44BF83ACEAC: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1851]: 463ED3ACED5: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1852]: 496B93AF746: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1854]: 619053AF747: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1855]: 69FAA3AF7CA: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1856]: 6C0213AF7CB: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1858]: 74CDA3AF7CE: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1859]: 9109B3AF7CF: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1860]: 9DE063AF7D0: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1861]: A2E133AF7D5: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:47 mail-container postfix/smtpd[1862]: B4CC53AF7D6: client=attacker1.incus[10.255.255.144]
+Nov 18 16:19:55 mail-container postfix/smtpd[1885]: connect from legit-client.incus[10.255.255.156]
+Nov 18 16:19:56 mail-container postfix/smtpd[1885]: AFDA43ABC52: client=legit-client.incus[10.255.255.156]
+Nov 18 16:19:57 mail-container postfix/cleanup[1886]: AFDA43ABC52: message-id=<1795018797321026609@client.test>
+Nov 18 16:19:57 mail-container postfix/qmgr[1769]: AFDA43ABC52: from=<alice@client.test>, size=410, nrcpt=1 (queue active)
+Nov 18 16:19:57 mail-container spamd[765]: spamd: connection from ::1 [::1]:40214 to port 783, fd 5
+Nov 18 16:19:57 mail-container spamd[765]: spamd: setuid to spamd succeeded
+Nov 18 16:19:57 mail-container spamd[765]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 18 16:19:57 mail-container spamd[765]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 18 16:19:57 mail-container spamd[765]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 18 16:19:57 mail-container spamd[765]: spamd: processing message <1795018797321026609@client.test> for spamd:999
+Nov 18 16:19:57 mail-container spamd[765]: spamd: clean message (0.3/5.0) for spamd:999 in 0.2 seconds, 433 bytes.
+Nov 18 16:19:57 mail-container spamd[765]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.2,size=433,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40214,mid=<1795018797321026609@client.test>,autolearn=no autolearn_force=no
+Nov 18 16:19:57 mail-container postfix/pickup[1768]: 8EAA53AF7CD: uid=999 from=<alice@client.test>
+Nov 18 16:19:57 mail-container spamd[316]: prefork: child states: II
+Nov 18 16:19:57 mail-container postfix/pipe[1819]: AFDA43ABC52: to=<root@mail-container>, relay=spamassassin, delay=1.2, delays=0.95/0/0/0.22, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 18 16:19:57 mail-container postfix/cleanup[1886]: 8EAA53AF7CD: message-id=<1795018797321026609@client.test>
+Nov 18 16:19:57 mail-container postfix/qmgr[1769]: AFDA43ABC52: removed
+Nov 18 16:19:57 mail-container postfix/qmgr[1769]: 8EAA53AF7CD: from=<alice@client.test>, size=779, nrcpt=1 (queue active)
+Nov 18 16:19:57 mail-container postfix/local[1829]: 8EAA53AF7CD: to=<root@mail-container>, relay=local, delay=0, delays=0/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 18 16:19:57 mail-container postfix/qmgr[1769]: 8EAA53AF7CD: removed
+Nov 18 16:19:57 mail-container postfix/smtpd[1885]: disconnect from legit-client.incus[10.255.255.156] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5

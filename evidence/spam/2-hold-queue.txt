@@ -1,0 +1,5 @@
+-Queue ID-  --Size-- ----Arrival Time---- -Sender/Recipient-------
+0C1063ACE9F!    2691 Wed Nov 18 16:19:42  promo@evil.test
+                                         root@mail-container
+
+-- 2 Kbytes in 1 Request.

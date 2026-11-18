@@ -1,0 +1,4 @@
+    SSLEInstanceDown                 firing   job=ssle-analytics   root_cause=ssle-analytics since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-ingestion   root_cause=ssle-ingestion since 2026-11-18T16:09:01
+    SSLEInstanceDown                 firing   job=ssle-storage     root_cause=ssle-storage since 2026-11-18T16:22:01
+    SSLEStorageNotRegistered         firing   job=-                root_cause=-        since 2026-11-18T16:22:11

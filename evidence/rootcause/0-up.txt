@@ -1,0 +1,5 @@
+    {instance=10.255.255.208:5050,job=ssle-registry} 1
+    {instance=10.255.255.133:5003,job=ssle-analytics} 0
+    {instance=10.255.255.49:5002,job=ssle-storage} 1
+    {instance=10.255.255.68:5001,job=ssle-ingestion} 0
+    {instance=10.255.255.26:8000,job=ssle-sensor} 1
