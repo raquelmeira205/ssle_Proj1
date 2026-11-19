@@ -1,1 +1,1 @@
-    (Prometheus unreachable or bad query)
+    {instance=10.42.0.38:5002,job=ssle-storage,k8s_node=k3s-master,pod=storage-55d8b74767-j4jzq} 5465

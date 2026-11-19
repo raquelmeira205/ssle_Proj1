@@ -52,6 +52,12 @@ for node in $NODES; do
   # read every pod's access log on this node (one extra <ossec_config> block, added once)
   incus exec "$node" -- mkdir -p /var/log/ssle
   incus exec "$node" -- sh -c "grep -q '/var/log/ssle/\*/access.log' $OSSEC || printf '\n<ossec_config>\n  <localfile>\n    <log_format>json</log_format>\n    <location>$LOGS</location>\n  </localfile>\n</ossec_config>\n' >> $OSSEC"
+  # Every new or replaced pod writes a NEW access.log (created on its first request). The
+  # logcollector looks for new files matching the wildcard only every 64 s by default and reads
+  # them from the end, so a fresh pod's first minute of requests never reached the SIEM.
+  incus exec "$node" -- sh -c "f=/var/ossec/etc/local_internal_options.conf; touch \$f;
+    grep -q '^logcollector.vcheck_files=' \$f && sed -i 's/^logcollector.vcheck_files=.*/logcollector.vcheck_files=5/' \$f \
+      || echo 'logcollector.vcheck_files=5' >> \$f"
 
   # active response that works for NodePort traffic
   incus file push wazuh/active-response/k3s-block.py "$node/var/ossec/active-response/bin/k3s-block"

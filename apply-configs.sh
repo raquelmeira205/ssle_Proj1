@@ -58,9 +58,10 @@ wazuh)
   step "Wazuh CDB list etc/lists/ssle-services (internal service IPs)"
   list=""
   for c in $SERVICES sensor; do ip=$(ip_of "$c"); [ -n "$ip" ] && list="$list$ip:$c\n" && echo "  $ip  $c"; done
-  # k3s: pods talk to each other with pod IPs from the cluster network 10.42.0.0/16, which change
-  # on every restart, so the whole prefix is listed (partial-IP key, matched as a prefix)
-  list="${list}10.42.:k3s-pods\n"; echo "  10.42.*  k3s pod network"
+  # k3s: pod IPs (10.42.0.0/16) change on every restart, so rule 100210 excludes that network by
+  # CIDR itself (<srcip>!10.42.0.0/16</srcip>): a "10.42." prefix key in this list never matched.
+  echo "  10.42.0.0/16  k3s pod network: excluded in rule 100210"
+  [ -n "$list" ] || list="127.0.0.1:localhost\n"   # Incus services stopped: keep the CDB list non-empty
   printf "$list" | incus exec "$WAZUH" -- sh -c 'cat > /var/ossec/etc/lists/ssle-services'
   incus exec "$WAZUH" -- chown wazuh:wazuh /var/ossec/etc/lists/ssle-services
   incus exec "$WAZUH" -- grep -q "etc/lists/ssle-services" /var/ossec/etc/ossec.conf \

@@ -1,0 +1,18 @@
+Prometheus during the 3-mitigated attack (2026-11-18T21:58:50-05:00)
+  request rate (req/s):
+    {job=ssle-analytics} 14.8014401440144
+  p95 latency (s):
+    {job=ssle-analytics} 1.8833349999999989
+  requests in progress:
+    {job=ssle-analytics} 0
+  where (service_info):
+    {country=pt,dc=dc1,id=analytics-service-analytics-dc1-767846b666-8kgkk.k3s-master.rack1.dc1.centro.pt,instance=10.42.0.34:5003,job=ssle-analytics,k8s_node=k3s-master,node=k3s-master,pod=analytics-dc1-767846b666-8kgkk,rack=rack1,region=centro,service=analytics-service} 1
+    {country=pt,dc=dc2,id=analytics-service-analytics-dc2-7c64994f87-b9x9p.k3s-node1.rack1.dc2.centro.pt,instance=10.42.1.15:5003,job=ssle-analytics,k8s_node=k3s-node1,node=k3s-node1,pod=analytics-dc2-7c64994f87-b9x9p,rack=rack1,region=centro,service=analytics-service} 1
+  active alerts:
+    SSLEHighRequestRate              firing   job=ssle-analytics   root_cause=-        since 2026-11-19T02:58:43
+    SSLEHighRequestRate              firing   job=ssle-storage     root_cause=-        since 2026-11-19T02:58:43
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-19T02:58:43
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-19T02:58:43
+    SSLEHighP95Latency               firing   job=ssle-storage     root_cause=-        since 2026-11-19T02:58:43
+    SSLERootCauseRequestFlood        firing   job=ssle-analytics   root_cause=request-flood since 2026-11-19T02:58:45
+    SSLERootCauseRequestFlood        firing   job=ssle-storage     root_cause=request-flood since 2026-11-19T02:58:45

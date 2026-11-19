@@ -85,6 +85,41 @@ Wazuh agent on each node blocks NodePort traffic. Every test runs on it with `PL
 ```
 Details, design decisions and limitations: [k3s/README.md](k3s/README.md).
 
+The threat tests run unchanged on the cluster with `PLATFORM=k3s`. Attacks target the NodePorts,
+detection uses the node agents, the DDoS block is `k3s-block` (raw/PREROUTING, before kube-proxy),
+and evidence goes to `evidence/k3s/<test>/`, so the Incus evidence is never overwritten:
+
+```bash
+PLATFORM=k3s ./test-ddos.sh
+PLATFORM=k3s ./test-spam.sh
+PLATFORM=k3s ./test-dns.sh --control
+PLATFORM=k3s ./test-rootcause.sh
+PLATFORM=k3s ./test-scale.sh
+```
+
+| Test | k3s result | Notes on k3s |
+|---|---|---|
+| `test-k3s.sh` | 40/40 | cluster, registry per pod, data flow per location, monitoring, SIEM, self-healing |
+| `test-ddos.sh` | 17/17 | attackers blocked in 1–3 s; pod-to-pod traffic excluded by rule 100209 |
+| `test-spam.sh` | 18/18 | mail runs outside the cluster: same behaviour as on Incus |
+| `test-dns.sh` | 10/10 | `*.ssle.local` points at the k3s-master NodePorts |
+| `test-rootcause.sh` | 8/8 | storage Deployment scaled to 0; one root-cause alert |
+| `test-scale.sh` | 9/9 | dc2 = pods on k3s-node1; ingestion speed-up 1.34x |
+
+k3s-specific issues found while running them:
+- **Pods blocking each other.** On k3s the services call each other with pod IPs (10.42.0.0/16) that
+  change on every restart, so they can't be listed in `etc/lists/ssle-services`. A `10.42.` prefix
+  key never matched, and `<srcip>!10.42.0.0/16</srcip>` behaved as a *positive* match. The fix is a
+  level-0 child rule (100209) that ends successful pod-to-pod requests before 100210 counts them.
+  It's defined after 100201, so internal 5xx errors still reach the root-cause correlation.
+- **New pods and the SIEM.** Every new pod writes a new `access.log`. The agent's logcollector looked
+  for new files only every 64 s, so the first minute of a new pod's traffic never reached Wazuh.
+  `k3s/install-wazuh-node-agents.sh` now sets `logcollector.vcheck_files=5`.
+- **DoS symptoms differ.** On k3s the flood mostly shows up as latency (p50 above 1 s) rather than
+  failed requests, so `test-ddos.sh` accepts a better success rate *or* a p50 at least halved.
+- **Shared disk.** The k3s nodes are Incus containers on the VM's disk. Below 5% free, the kubelet
+  evicts every pod and taints both nodes (everything stays `Pending`). Check `df -h /` first.
+
 ## Running the threat tests
 
 ```bash

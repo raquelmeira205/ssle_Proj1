@@ -118,6 +118,14 @@ section "6. SIEM"
 for n in "$K3S_MASTER" "$K3S_NODE1"; do
   incus exec "$n" -- systemctl is-active -q wazuh-agent && ok "Wazuh agent active on $n" || bad "no Wazuh agent on $n (k3s/install-wazuh-node-agents.sh)"
 done
+# A pod's access.log only exists after its first request, and the agent only reads it once its
+# logcollector has picked the new file up. Warm up the dc2 pod and wait for that, otherwise a
+# freshly (re)started pod makes this check race the agent.
+POD2=$(kctl get pod -l app=analytics,dc=dc2 --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')
+incus exec "$CLIENT" -- python3 -c "import urllib.request; urllib.request.urlopen('$(public_url analytics "$K3S_NODE1")/stats', timeout=5)" 2>/dev/null
+for i in $(seq 1 75); do
+  incus exec "$K3S_NODE1" -- grep -q "/var/log/ssle/$POD2/access.log" /var/ossec/logs/ossec.log 2>/dev/null && break; sleep 1
+done
 MARK=$(alerts_mark)
 for i in 1 2 3; do incus exec "$CLIENT" -- python3 -c "import urllib.request; urllib.request.urlopen('$(public_url analytics "$K3S_NODE1")/stats', timeout=5)" 2>/dev/null; done
 if wait_alert "$MARK" 100200 20 "\"srcip\":\"$CIP\"" > "$EVID/6-wazuh-100200.json"; then
@@ -147,8 +155,12 @@ else
       echo "$svcs" | grep -q "$NEWIP:" && break; sleep 1
     done
     echo "$svcs" | grep -q "$NEWIP:" && ok "the new pod ($NEWIP) registered itself" || bad "new pod $NEWIP not in the registry"
-    for i in $(seq 1 40); do near curl -s "$REG/services" | grep -q "$OLDIP:" || break; sleep 1; done
-    near curl -s "$REG/services" | grep -q "$OLDIP:" && bad "old pod ($OLDIP) still registered" || ok "old pod ($OLDIP) removed by the health checker"
+    # Removal needs MAX_FAILURES=2 failed sweeps, 10 s apart, and a deleted pod's IP does not
+    # answer, so each check waits its 2 s timeout: up to ~1 min in practice (test-rootcause: 54 s).
+    T_DEL=$(now)
+    for i in $(seq 1 90); do near curl -s "$REG/services" | grep -q "$OLDIP:" || break; sleep 1; done
+    near curl -s "$REG/services" | grep -q "$OLDIP:" && bad "old pod ($OLDIP) still registered after 90 s" \
+      || ok "old pod ($OLDIP) removed by the health checker ($(elapsed "$T_DEL" "$(now)") s after the new pod registered)"
   else
     bad "pod $OLD was not replaced by a running pod"
   fi

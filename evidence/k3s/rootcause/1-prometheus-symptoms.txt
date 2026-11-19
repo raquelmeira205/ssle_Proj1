@@ -1,0 +1,6 @@
+storage errors seen by dependents (1 min):
+    {instance=10.42.0.34:5003,job=ssle-analytics,k8s_node=k3s-master,pod=analytics-dc1-767846b666-8kgkk} 2.1817785131179432
+    {instance=10.42.1.15:5003,job=ssle-analytics,k8s_node=k3s-node1,pod=analytics-dc2-7c64994f87-b9x9p} 0
+    (no data)
+registry instances of storage:
+    {country=pt,dc=dc1,instance=10.42.0.30:5050,job=ssle-registry,k8s_node=k3s-master,node=k3s-master,pod=registry-5ddcf48556-wbwvp,rack=rack1,region=centro,service=storage-service} 1

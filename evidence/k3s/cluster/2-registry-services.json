@@ -1,0 +1,68 @@
+{
+    "analytics-service": [
+        {
+            "id": "analytics-service-analytics-dc2-7c64994f87-b9x9p.k3s-node1.rack1.dc2.centro.pt",
+            "location": {
+                "country": "pt",
+                "dc": "dc2",
+                "node": "k3s-node1",
+                "rack": "rack1",
+                "region": "centro"
+            },
+            "timestamp": "2026-11-19T03:02:23.225144+00:00",
+            "url": "http://10.42.1.15:5003"
+        },
+        {
+            "id": "analytics-service-analytics-dc1-767846b666-8kgkk.k3s-master.rack1.dc1.centro.pt",
+            "location": {
+                "country": "pt",
+                "dc": "dc1",
+                "node": "k3s-master",
+                "rack": "rack1",
+                "region": "centro"
+            },
+            "timestamp": "2026-11-19T03:02:19.212995+00:00",
+            "url": "http://10.42.0.34:5003"
+        }
+    ],
+    "ingestion-service": [
+        {
+            "id": "ingestion-service-ingestion-dc2-b9f875d59-nhrmr.k3s-node1.rack1.dc2.centro.pt",
+            "location": {
+                "country": "pt",
+                "dc": "dc2",
+                "node": "k3s-node1",
+                "rack": "rack1",
+                "region": "centro"
+            },
+            "timestamp": "2026-11-19T03:02:23.124697+00:00",
+            "url": "http://10.42.1.14:5001"
+        },
+        {
+            "id": "ingestion-service-ingestion-dc1-679b5b468b-kkxzt.k3s-master.rack1.dc1.centro.pt",
+            "location": {
+                "country": "pt",
+                "dc": "dc1",
+                "node": "k3s-master",
+                "rack": "rack1",
+                "region": "centro"
+            },
+            "timestamp": "2026-11-19T03:02:16.878472+00:00",
+            "url": "http://10.42.0.39:5001"
+        }
+    ],
+    "storage-service": [
+        {
+            "id": "storage-service-storage-55d8b74767-j4jzq.k3s-master.rack1.dc1.centro.pt",
+            "location": {
+                "country": "pt",
+                "dc": "dc1",
+                "node": "k3s-master",
+                "rack": "rack1",
+                "region": "centro"
+            },
+            "timestamp": "2026-11-19T03:02:19.645801+00:00",
+            "url": "http://10.42.0.38:5002"
+        }
+    ]
+}

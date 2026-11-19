@@ -1,158 +1,125 @@
-Run started 2026-11-18T20:13:36-05:00 on kali, platform k3s
+Run started 2026-11-18T22:02:20-05:00 on kali, platform k3s
   ....  k3s-master 10.255.255.139, k3s-node1 10.255.255.175
 
 == 0. Cluster
-NAME         STATUS   ROLES           AGE   VERSION        INTERNAL-IP      EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION               CONTAINER-RUNTIME         SSLE.DC   SSLE.RACK
-k3s-master   Ready    control-plane   73m   v1.37.2+k3s1   10.255.255.139   <none>        Debian GNU/Linux 13 (trixie)   6.19.14+kali-amd64 (amd64)   containerd://2.3.7-k3s1   dc1       rack1
-k3s-node1    Ready    <none>          72m   v1.37.2+k3s1   10.255.255.175   <none>        Debian GNU/Linux 13 (trixie)   6.19.14+kali-amd64 (amd64)   containerd://2.3.7-k3s1   dc2       rack1
+NAME         STATUS   ROLES           AGE    VERSION        INTERNAL-IP      EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION               CONTAINER-RUNTIME         SSLE.DC   SSLE.RACK
+k3s-master   Ready    control-plane   3h2m   v1.37.2+k3s1   10.255.255.139   <none>        Debian GNU/Linux 13 (trixie)   6.19.14+kali-amd64 (amd64)   containerd://2.3.7-k3s1   dc1       rack1
+k3s-node1    Ready    <none>          3h1m   v1.37.2+k3s1   10.255.255.175   <none>        Debian GNU/Linux 13 (trixie)   6.19.14+kali-amd64 (amd64)   containerd://2.3.7-k3s1   dc2       rack1
   PASS  2 nodes Ready
   PASS  k3s-master is location dc1
+    k3s-master: MemoryPressure=False DiskPressure=False PIDPressure=False Ready=True 
+  PASS  k3s-master has no memory/disk pressure
   PASS  k3s-node1 is location dc2
+    k3s-node1: MemoryPressure=False DiskPressure=False PIDPressure=False Ready=True 
+  PASS  k3s-node1 has no memory/disk pressure
 
 == 1. Workloads
-NAME                            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                     SELECTOR
-deployment.apps/analytics-dc1   0/1     1            0           52m   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc1
-deployment.apps/analytics-dc2   0/1     1            0           52m   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc2
-deployment.apps/ingestion-dc1   0/1     1            0           52m   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc1
-deployment.apps/ingestion-dc2   0/1     1            0           52m   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc2
-deployment.apps/prometheus      0/1     1            0           51m   prometheus   prom/prometheus:v2.53.0                    app=prometheus
-deployment.apps/registry        0/1     1            0           52m   registry     docker.incus:5000/ssle/registry:3335d3b    app=registry,dc=dc1
-deployment.apps/sensor-dc1      0/1     1            0           52m   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc1
-deployment.apps/sensor-dc2      0/1     1            0           52m   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc2
-deployment.apps/storage         0/1     1            0           52m   storage      docker.incus:5000/ssle/storage:3335d3b     app=storage,dc=dc1
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                                     SELECTOR
+deployment.apps/analytics-dc1   1/1     1            1           160m   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc1
+deployment.apps/analytics-dc2   1/1     1            1           160m   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc2
+deployment.apps/ingestion-dc1   1/1     1            1           160m   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc1
+deployment.apps/ingestion-dc2   1/1     1            1           160m   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc2
+deployment.apps/prometheus      1/1     1            1           160m   prometheus   prom/prometheus:v2.53.0                    app=prometheus
+deployment.apps/registry        1/1     1            1           160m   registry     docker.incus:5000/ssle/registry:3335d3b    app=registry,dc=dc1
+deployment.apps/sensor-dc1      1/1     1            1           160m   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc1
+deployment.apps/sensor-dc2      1/1     1            1           160m   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc2
+deployment.apps/storage         1/1     1            1           160m   storage      docker.incus:5000/ssle/storage:3335d3b     app=storage,dc=dc1
 
-NAME                                 READY   STATUS                   RESTARTS      AGE   IP           NODE         NOMINATED NODE   READINESS GATES
-pod/analytics-dc1-767846b666-8kgkk   0/1     Pending                  0             13s   <none>       <none>       <none>           <none>
-pod/analytics-dc1-767846b666-s955s   0/1     ContainerStatusUnknown   1             12m   10.42.0.28   k3s-master   <none>           <none>
-pod/analytics-dc2-7c64994f87-5pccc   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/analytics-dc2-7c64994f87-65ch9   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/analytics-dc2-7c64994f87-75sj5   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/analytics-dc2-7c64994f87-b9x9p   0/1     Pending                  0             18s   <none>       <none>       <none>           <none>
-pod/analytics-dc2-7c64994f87-grxcv   0/1     Error                    0             12m   10.42.1.13   k3s-node1    <none>           <none>
-pod/analytics-dc2-7c64994f87-hxljb   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc1-679b5b468b-nbqk2   0/1     Pending                  0             17s   <none>       <none>       <none>           <none>
-pod/ingestion-dc1-679b5b468b-pf25h   0/1     Error                    0             12m   10.42.0.27   k3s-master   <none>           <none>
-pod/ingestion-dc2-b9f875d59-4dn9n    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-4sf4q    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-6wdrt    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-7p45c    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-7qjg2    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-88vth    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-8l9tn    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-cf2cx    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-dvljj    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-hfqfh    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-hrkqk    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-hvn46    0/1     ContainerStatusUnknown   1             12m   10.42.1.12   k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-jf9nl    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-kj27p    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-ljkfp    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-m4wxt    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-m64jz    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-mfq96    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-ml6zn    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-n72v2    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-nhrmr    0/1     Pending                  0             18s   <none>       <none>       <none>           <none>
-pod/ingestion-dc2-b9f875d59-ss7rd    0/1     Evicted                  0             19s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-t5rm7    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-t6thb    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
-pod/ingestion-dc2-b9f875d59-zcz5w    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
-pod/prometheus-7df4755987-pjdtw      0/1     Completed                1 (26m ago)   51m   10.42.0.23   k3s-master   <none>           <none>
-pod/prometheus-7df4755987-wvnc2      0/1     Pending                  0             7s    <none>       <none>       <none>           <none>
-pod/registry-5ddcf48556-5cclw        0/1     ContainerStatusUnknown   1             12m   10.42.0.26   k3s-master   <none>           <none>
-pod/registry-5ddcf48556-wbwvp        0/1     Pending                  0             25s   <none>       <none>       <none>           <none>
-pod/sensor-dc1-5674587469-ph28m      0/1     Pending                  0             10s   <none>       <none>       <none>           <none>
-pod/sensor-dc1-5674587469-qt47h      0/1     Error                    1 (26m ago)   52m   10.42.0.24   k3s-master   <none>           <none>
-pod/sensor-dc2-7977694bf7-lfbhm      0/1     Error                    1 (25m ago)   52m   10.42.1.10   k3s-node1    <none>           <none>
-pod/sensor-dc2-7977694bf7-qbcm8      0/1     Pending                  0             15s   <none>       <none>       <none>           <none>
-pod/storage-55d8b74767-jnzpf         0/1     Error                    0             11m   10.42.0.29   k3s-master   <none>           <none>
-pod/storage-55d8b74767-qjn4h         0/1     Pending                  0             21s   <none>       <none>       <none>           <none>
+NAME                                 READY   STATUS    RESTARTS      AGE     IP           NODE         NOMINATED NODE   READINESS GATES
+pod/analytics-dc1-767846b666-8kgkk   1/1     Running   2 (15m ago)   108m    10.42.0.34   k3s-master   <none>           <none>
+pod/analytics-dc2-7c64994f87-b9x9p   1/1     Running   0             109m    10.42.1.15   k3s-node1    <none>           <none>
+pod/ingestion-dc1-679b5b468b-kkxzt   1/1     Running   0             76s     10.42.0.39   k3s-master   <none>           <none>
+pod/ingestion-dc2-b9f875d59-nhrmr    1/1     Running   0             109m    10.42.1.14   k3s-node1    <none>           <none>
+pod/prometheus-7df4755987-wvnc2      1/1     Running   0             108m    10.42.0.35   k3s-master   <none>           <none>
+pod/registry-5ddcf48556-wbwvp        1/1     Running   0             109m    10.42.0.30   k3s-master   <none>           <none>
+pod/sensor-dc1-5674587469-ph28m      1/1     Running   0             108m    10.42.0.32   k3s-master   <none>           <none>
+pod/sensor-dc2-7977694bf7-qbcm8      1/1     Running   0             108m    10.42.1.16   k3s-node1    <none>           <none>
+pod/storage-55d8b74767-j4jzq         1/1     Running   0             7m24s   10.42.0.38   k3s-master   <none>           <none>
 
-NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE   SELECTOR
-service/analytics    NodePort    10.43.152.105   <none>        5003:30003/TCP   52m   app=analytics
-service/ingestion    NodePort    10.43.152.188   <none>        5001:30001/TCP   52m   app=ingestion
-service/prometheus   NodePort    10.43.82.105    <none>        9090:30090/TCP   51m   app=prometheus
-service/registry     ClusterIP   10.43.117.151   <none>        5050/TCP         52m   app=registry
-service/storage      ClusterIP   10.43.29.126    <none>        5002/TCP         52m   app=storage
-  FAIL  deployment analytics-dc1 not available
-  FAIL  deployment analytics-dc2 not available
-  FAIL  deployment ingestion-dc1 not available
-  FAIL  deployment ingestion-dc2 not available
-  FAIL  deployment prometheus not available
-  FAIL  deployment registry not available
-  FAIL  deployment sensor-dc1 not available
-  FAIL  deployment sensor-dc2 not available
-  FAIL  deployment storage not available
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE    SELECTOR
+service/analytics    NodePort    10.43.152.105   <none>        5003:30003/TCP   160m   app=analytics
+service/ingestion    NodePort    10.43.152.188   <none>        5001:30001/TCP   160m   app=ingestion
+service/prometheus   NodePort    10.43.82.105    <none>        9090:30090/TCP   160m   app=prometheus
+service/registry     ClusterIP   10.43.117.151   <none>        5050/TCP         160m   app=registry
+service/storage      ClusterIP   10.43.29.126    <none>        5002/TCP         160m   app=storage
+  PASS  deployment analytics-dc1 available
+  PASS  deployment analytics-dc2 available
+  PASS  deployment ingestion-dc1 available
+  PASS  deployment ingestion-dc2 available
+  PASS  deployment prometheus available
+  PASS  deployment registry available
+  PASS  deployment sensor-dc1 available
+  PASS  deployment sensor-dc2 available
+  PASS  deployment storage available
   PASS  ingestion-dc1 runs on k3s-master
-  FAIL  ingestion-dc2 runs on 'k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1 k3s-node1' (expected k3s-node1)
+  PASS  ingestion-dc2 runs on k3s-node1
   PASS  every SSLE image comes from docker.incus:5000
 
 == 2. Registry: one entry per pod, hierarchical IDs
-Expecting value: line 1 column 1 (char 0)
-Traceback (most recent call last):
-  File "<stdin>", line 2, in <module>
-  File "/usr/lib/python3.13/json/__init__.py", line 298, in load
-    return loads(fp.read(),
-        cls=cls, object_hook=object_hook,
-        parse_float=parse_float, parse_int=parse_int,
-        parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
-  File "/usr/lib/python3.13/json/__init__.py", line 352, in loads
-    return _default_decoder.decode(s)
-           ~~~~~~~~~~~~~~~~~~~~~~~^^^
-  File "/usr/lib/python3.13/json/decoder.py", line 345, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.13/json/decoder.py", line 363, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-  FAIL  ingestion-service: replicas collapse or locations missing
-  FAIL  analytics-service: replicas collapse or locations missing
-  FAIL  IDs do not contain the node name
+ingestion-service: 2 instances, dcs=dc1,dc2
+    ingestion-service-ingestion-dc2-b9f875d59-nhrmr.k3s-node1.rack1.dc2.centro.pt  ->  http://10.42.1.14:5001
+    ingestion-service-ingestion-dc1-679b5b468b-kkxzt.k3s-master.rack1.dc1.centro.pt  ->  http://10.42.0.39:5001
+RESULT ingestion-service OK
+analytics-service: 2 instances, dcs=dc1,dc2
+    analytics-service-analytics-dc2-7c64994f87-b9x9p.k3s-node1.rack1.dc2.centro.pt  ->  http://10.42.1.15:5003
+    analytics-service-analytics-dc1-767846b666-8kgkk.k3s-master.rack1.dc1.centro.pt  ->  http://10.42.0.34:5003
+RESULT analytics-service OK
+  PASS  ingestion-service: one entry per pod (pod IPs), in dc1 and dc2
+  PASS  analytics-service: one entry per pod (pod IPs), in dc1 and dc2
+  PASS  IDs carry the k3s node as physical location (…k3s-master.rack1.dc1.centro.pt)
 
 == 3. Data flow and location-aware discovery
   ....  waiting 30 s for readings
-    (Prometheus unreachable or bad query)
-  FAIL  no readings accepted by ingestion-dc1
-  FAIL  no readings accepted by ingestion-dc2
-    (Prometheus unreachable or bad query)
-  FAIL  storage is empty
+    {dc=dc2} 12.000218185785197
+    {dc=dc1} 12
+  PASS  ingestion-dc1 accepted readings (12 in 1 min): the dc1 sensor uses its own location
+  PASS  ingestion-dc2 accepted readings (12 in 1 min): the dc2 sensor uses its own location
+    {instance=10.42.0.38:5002,job=ssle-storage,k8s_node=k3s-master,pod=storage-55d8b74767-j4jzq} 5465
+  PASS  storage holds readings
 
 == 4. Exposure
-  FAIL  analytics NodePort did not answer ()
-  FAIL  client IP 10.255.255.156 not in the pod's log (SNAT?)
+  PASS  analytics answers on NodePort 30003
+  PASS  the pod logged the real client IP 10.255.255.156 (externalTrafficPolicy Local)
   PASS  registry is ClusterIP only
   PASS  storage is ClusterIP only
 
 == 5. Monitoring
-    (Prometheus unreachable or bad query)
-  FAIL  ssle-registry not scraped
-  FAIL  ssle-storage not scraped
-  FAIL  ssle-ingestion not scraped
-  FAIL  ssle-analytics not scraped
-  FAIL  ssle-sensor not scraped
-    (no data)
-  FAIL  central Prometheus has no k3s aggregates (PLATFORM=k3s ./apply-configs.sh prometheus)
+    {job=ssle-analytics} 2
+    {job=ssle-sensor} 2
+    {job=ssle-registry} 1
+    {job=ssle-ingestion} 2
+    {job=ssle-storage} 1
+  PASS  in-cluster Prometheus scrapes ssle-registry
+  PASS  in-cluster Prometheus scrapes ssle-storage
+  PASS  in-cluster Prometheus scrapes ssle-ingestion
+  PASS  in-cluster Prometheus scrapes ssle-analytics
+  PASS  in-cluster Prometheus scrapes ssle-sensor
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=analytics-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=ingestion-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=registry-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=storage-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=temperature-sensor} 1
+    {cluster=k3s,country=pt,dc=dc2,job=federate-k3s,region=centro,service=analytics-service} 1
+    {cluster=k3s,country=pt,dc=dc2,job=federate-k3s,region=centro,service=ingestion-service} 1
+    {cluster=k3s,country=pt,dc=dc2,job=federate-k3s,region=centro,service=temperature-sensor} 1
+  PASS  central Prometheus federates the per-location aggregates (dc1 + dc2)
 
 == 6. SIEM
   PASS  Wazuh agent active on k3s-master
   PASS  Wazuh agent active on k3s-node1
-  FAIL  no rule 100200 event from the k3s pods
+  PASS  pod access log reached the manager through the node agent
+  2026-11-19T03:02:58.051+0000  rule 100200 (level 3, fired 10 times)
+      source : srcip=10.255.255.156
+      where  : agent=k3s-node-01.k3s-node1.rack1.dc2.centro.pt (10.255.255.175)
+      what   : SSLE access log: analytics-service GET /stats returned 200 to 10.255.255.156
+  PASS  the event carries the pod's hierarchical ID (dc2)
 
 == 7. Self-healing
-error: timed out waiting for the condition
-error: error executing jsonpath "{.items[0].metadata.name}": Error executing template: array index out of bounds: index 0, length 0. Printing more information for debugging the template:
-	template was:
-		{.items[0].metadata.name}
-	object given to jsonpath engine was:
-		map[string]interface {}{"apiVersion":"v1", "items":[]interface {}{}, "kind":"List", "metadata":map[string]interface {}{"resourceVersion":""}}
-
-
-error: resource name may not be empty
-  FAIL  pod was not replaced
-  PASS  the new pod () registered itself
-  PASS  old pod () removed by the health checker
+  PASS  pod ingestion-dc1-679b5b468b-kkxzt replaced by ingestion-dc1-679b5b468b-rn4xc (10.42.0.40)
+  PASS  the new pod (10.42.0.40) registered itself
+  PASS  old pod (10.42.0.39) removed by the health checker (15.8 s after the new pod registered)
 
 ========================================
-Result: 11 passed, 26 failed
+Result: 40 passed, 0 failed
 Evidence saved in evidence/k3s/cluster/
 ========================================

@@ -1,0 +1,22 @@
+bytes of one full scrape (/metrics):
+    registry      16566 bytes
+    storage        9296 bytes
+    ingestion      7282 bytes
+    analytics      7146 bytes
+federation of every raw series : 403553 bytes (11600 gzip)
+federation of location:* only  : 2878 bytes (400 gzip)
+per-location view (location:instances:count, location:http_requests:rate1m):
+    {country=pt,dc=dc1,region=centro,service=analytics-service} 1
+    {country=pt,dc=dc1,region=centro,service=storage-service} 1
+    {country=pt,dc=dc2,region=centro,service=temperature-sensor} 1
+    {country=pt,dc=dc2,region=centro,service=analytics-service} 1
+    {country=pt,dc=dc1,region=centro,service=registry-service} 1
+    {country=pt,dc=dc2,region=centro,service=ingestion-service} 1
+    {country=pt,dc=dc1,region=centro,service=ingestion-service} 1
+    {country=pt,dc=dc1,region=centro,service=temperature-sensor} 1
+    {country=pt,dc=dc1,region=centro,service=analytics-service} 68.7830687830688
+    {country=pt,dc=dc1,region=centro,service=storage-service} 105.66054333333332
+    {country=pt,dc=dc2,region=centro,service=analytics-service} 23.74985090909091
+    {country=pt,dc=dc1,region=centro,service=registry-service} 179.67867870324918
+    {country=pt,dc=dc2,region=centro,service=ingestion-service} 6.218181818181819
+    {country=pt,dc=dc1,region=centro,service=ingestion-service} 7.363636363636363

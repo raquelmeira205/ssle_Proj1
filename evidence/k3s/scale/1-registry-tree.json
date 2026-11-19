@@ -1,0 +1,48 @@
+{
+    "pt": {
+        "children": {
+            "centro": {
+                "children": {
+                    "dc1": {
+                        "children": {
+                            "rack1": {
+                                "children": {
+                                    "k3s-master": {
+                                        "children": {},
+                                        "count": 3,
+                                        "level": "node"
+                                    }
+                                },
+                                "count": 3,
+                                "level": "rack"
+                            }
+                        },
+                        "count": 3,
+                        "level": "dc"
+                    },
+                    "dc2": {
+                        "children": {
+                            "rack1": {
+                                "children": {
+                                    "k3s-node1": {
+                                        "children": {},
+                                        "count": 2,
+                                        "level": "node"
+                                    }
+                                },
+                                "count": 2,
+                                "level": "rack"
+                            }
+                        },
+                        "count": 2,
+                        "level": "dc"
+                    }
+                },
+                "count": 5,
+                "level": "region"
+            }
+        },
+        "count": 5,
+        "level": "country"
+    }
+}

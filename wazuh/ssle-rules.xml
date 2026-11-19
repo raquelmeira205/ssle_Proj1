@@ -55,6 +55,17 @@
        Sources in etc/lists/ssle-services (the SSLE services, rebuilt by apply-configs.sh) are
        ignored: every /stats call makes analytics call the registry and storage, so without this
        storage and the registry blocked analytics during a flood (self-inflicted outage). -->
+
+  <!-- k3s: the services talk with pod IPs (10.42.0.0/16) that change on every restart, so they
+       cannot be listed one by one (and a "10.42." prefix key in the CDB list did not match).
+       Successful pod-to-pod requests end here, at level 0, so they are never counted by 100210.
+       Defined after 100201, so internal 5xx errors still reach the root-cause correlation. -->
+  <rule id="100209" level="0">
+    <if_sid>100200</if_sid>
+    <srcip>10.42.0.0/16</srcip>
+    <description>SSLE: internal k3s pod-to-pod request (not counted as a flood source)</description>
+  </rule>
+
   <rule id="100210" level="10" frequency="15" timeframe="10">
     <if_matched_sid>100200</if_matched_sid>
     <same_srcip />

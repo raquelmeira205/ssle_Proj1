@@ -1,0 +1,19 @@
+Nov 19 02:51:30 mail-container postfix/smtpd[2718]: connect from attacker1.incus[10.255.255.144]
+Nov 19 02:51:31 mail-container postfix/smtpd[2718]: AB4623ACAAA: client=attacker1.incus[10.255.255.144]
+Nov 19 02:51:32 mail-container postfix/cleanup[2724]: AB4623ACAAA: message-id=<1795056692309825451@client.test>
+Nov 19 02:51:32 mail-container postfix/qmgr[2421]: AB4623ACAAA: from=<promo@evil.test>, size=428, nrcpt=1 (queue active)
+Nov 19 02:51:32 mail-container spamd[850]: spamd: connection from ::1 [::1]:47990 to port 783, fd 5
+Nov 19 02:51:32 mail-container spamd[850]: spamd: setuid to spamd succeeded
+Nov 19 02:51:32 mail-container spamd[850]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 19 02:51:32 mail-container spamd[850]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 19 02:51:32 mail-container spamd[850]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 19 02:51:32 mail-container spamd[850]: spamd: processing message <1795056692309825451@client.test> for spamd:999
+Nov 19 02:51:32 mail-container spamd[850]: spamd: identified spam (1000.3/5.0) for spamd:999 in 0.1 seconds, 449 bytes.
+Nov 19 02:51:32 mail-container spamd[850]: spamd: result: Y 1000 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,GTUBE,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=449,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=47990,mid=<1795056692309825451@client.test>,autolearn=no autolearn_force=no
+Nov 19 02:51:32 mail-container postfix/pickup[2422]: 731163ACAAC: uid=999 from=<promo@evil.test>
+Nov 19 02:51:32 mail-container postfix/cleanup[2724]: 731163ACAAC: message-id=<1795056692309825451@client.test>
+Nov 19 02:51:32 mail-container postfix/cleanup[2724]: 731163ACAAC: hold: header X-Spam-Flag: YES from local; from=<promo@evil.test> to=<root@mail-container>: quarantined by SpamAssassin
+Nov 19 02:51:32 mail-container spamd[360]: prefork: child states: II
+Nov 19 02:51:32 mail-container postfix/pipe[2725]: AB4623ACAAA: to=<root@mail-container>, relay=spamassassin, delay=1.1, delays=0.96/0/0/0.11, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 19 02:51:32 mail-container postfix/qmgr[2421]: AB4623ACAAA: removed
+Nov 19 02:51:32 mail-container postfix/smtpd[2718]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5

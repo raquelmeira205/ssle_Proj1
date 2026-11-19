@@ -178,8 +178,16 @@ grep -qw "$LEGIT_IP" "$EVID/3-iptables-during-block.txt" \
 U_OK=$(res "$EVID/2-unmitigated-legit.txt" ok); U_F=$(res "$EVID/2-unmitigated-legit.txt" failed)
 M_OK=$(res "$EVID/3-mitigated-legit.txt" ok);   M_F=$(res "$EVID/3-mitigated-legit.txt" failed)
 U_PCT=$(pct "$U_OK" "$U_F"); M_PCT=$(pct "$M_OK" "$M_F")
-[ "$M_PCT" -gt "$U_PCT" ] && ok "legitimate success rate improved: ${U_PCT}% unmitigated -> ${M_PCT}% mitigated" \
-                          || bad "legitimate success rate did not improve (${U_PCT}% -> ${M_PCT}%)"
+# The flood shows up as failures (Incus: timeouts) or only as latency (k3s: the pod keeps
+# answering, slowly), so mitigation counts if success went up OR p50 dropped to under half.
+U_P50=$(res "$EVID/2-unmitigated-legit.txt" p50); M_P50=$(res "$EVID/3-mitigated-legit.txt" p50)
+if [ "$M_PCT" -gt "$U_PCT" ]; then
+  ok "legitimate success rate improved: ${U_PCT}% unmitigated -> ${M_PCT}% mitigated"
+elif [ "$M_PCT" -ge "$U_PCT" ] && [ "${M_P50:-0}" -gt 0 ] && [ $(( ${M_P50:-0} * 2 )) -lt "${U_P50:-0}" ]; then
+  ok "legitimate latency improved: p50 ${U_P50} ms unmitigated -> ${M_P50} ms mitigated (success ${U_PCT}% -> ${M_PCT}%)"
+else
+  bad "legitimate client did not improve (success ${U_PCT}% -> ${M_PCT}%, p50 ${U_P50:-?} -> ${M_P50:-?} ms)"
+fi
 
 # ------------------------------------------------------------------ 4. recovery
 section "4. Recovery: block removed after ${BLOCK_SECS} s (skip with --no-wait)"

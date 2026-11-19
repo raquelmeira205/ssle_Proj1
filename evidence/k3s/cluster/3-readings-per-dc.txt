@@ -1,1 +1,2 @@
-    (Prometheus unreachable or bad query)
+    {dc=dc2} 12.000218185785197
+    {dc=dc1} 12

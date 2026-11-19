@@ -1,1 +1,5 @@
-    (Prometheus unreachable or bad query)
+    {job=ssle-analytics} 2
+    {job=ssle-sensor} 2
+    {job=ssle-registry} 1
+    {job=ssle-ingestion} 2
+    {job=ssle-storage} 1

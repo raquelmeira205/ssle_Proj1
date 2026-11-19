@@ -1,0 +1,12 @@
+# filter INPUT
+Chain INPUT (policy ACCEPT 7723 packets, 2503K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+10665 3119K KUBE-ROUTER-INPUT  all  --  *      *       0.0.0.0/0            0.0.0.0/0            /* kube-router netpol - 4IA2OSFRMVNDXBVV */
+ 7723 2503K KUBE-FIREWALL  all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+ 2380  817K KUBE-PROXY-FIREWALL  all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate NEW /* kubernetes load balancer firewall */
+ 7723 2503K KUBE-NODEPORTS  all  --  *      *       0.0.0.0/0            0.0.0.0/0            /* kubernetes health check service ports */
+ 2380  817K KUBE-EXTERNAL-SERVICES  all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate NEW /* kubernetes externally-visible service portals */
+
+# raw PREROUTING
+Chain PREROUTING (policy ACCEPT 820K packets, 460M bytes)
+ pkts bytes target     prot opt in     out     source               destination         

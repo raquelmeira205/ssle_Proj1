@@ -1,0 +1,7 @@
+=== Baseline (legitimate client only) (15.3s) ===
+  Total requests : 15 (OK: 15, Failed/Blocked: 0)
+  Throughput     : 0.98 ok req/s (0.98 total req/s)
+  Latency p50    : 13.24 ms
+  Latency p95    : 31.77 ms
+RESULT ok=15 failed=0 p50=13 p95=32
+
