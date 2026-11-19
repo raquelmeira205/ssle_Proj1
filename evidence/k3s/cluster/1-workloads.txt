@@ -1,0 +1,64 @@
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                     SELECTOR
+deployment.apps/analytics-dc1   0/1     1            0           52m   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc1
+deployment.apps/analytics-dc2   0/1     1            0           52m   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc2
+deployment.apps/ingestion-dc1   0/1     1            0           52m   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc1
+deployment.apps/ingestion-dc2   0/1     1            0           52m   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc2
+deployment.apps/prometheus      0/1     1            0           51m   prometheus   prom/prometheus:v2.53.0                    app=prometheus
+deployment.apps/registry        0/1     1            0           52m   registry     docker.incus:5000/ssle/registry:3335d3b    app=registry,dc=dc1
+deployment.apps/sensor-dc1      0/1     1            0           52m   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc1
+deployment.apps/sensor-dc2      0/1     1            0           52m   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc2
+deployment.apps/storage         0/1     1            0           52m   storage      docker.incus:5000/ssle/storage:3335d3b     app=storage,dc=dc1
+
+NAME                                 READY   STATUS                   RESTARTS      AGE   IP           NODE         NOMINATED NODE   READINESS GATES
+pod/analytics-dc1-767846b666-8kgkk   0/1     Pending                  0             13s   <none>       <none>       <none>           <none>
+pod/analytics-dc1-767846b666-s955s   0/1     ContainerStatusUnknown   1             12m   10.42.0.28   k3s-master   <none>           <none>
+pod/analytics-dc2-7c64994f87-5pccc   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/analytics-dc2-7c64994f87-65ch9   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/analytics-dc2-7c64994f87-75sj5   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/analytics-dc2-7c64994f87-b9x9p   0/1     Pending                  0             18s   <none>       <none>       <none>           <none>
+pod/analytics-dc2-7c64994f87-grxcv   0/1     Error                    0             12m   10.42.1.13   k3s-node1    <none>           <none>
+pod/analytics-dc2-7c64994f87-hxljb   0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc1-679b5b468b-nbqk2   0/1     Pending                  0             17s   <none>       <none>       <none>           <none>
+pod/ingestion-dc1-679b5b468b-pf25h   0/1     Error                    0             12m   10.42.0.27   k3s-master   <none>           <none>
+pod/ingestion-dc2-b9f875d59-4dn9n    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-4sf4q    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-6wdrt    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-7p45c    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-7qjg2    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-88vth    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-8l9tn    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-cf2cx    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-dvljj    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-hfqfh    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-hrkqk    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-hvn46    0/1     ContainerStatusUnknown   1             12m   10.42.1.12   k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-jf9nl    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-kj27p    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-ljkfp    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-m4wxt    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-m64jz    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-mfq96    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-ml6zn    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-n72v2    0/1     Evicted                  0             18s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-nhrmr    0/1     Pending                  0             18s   <none>       <none>       <none>           <none>
+pod/ingestion-dc2-b9f875d59-ss7rd    0/1     Evicted                  0             19s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-t5rm7    0/1     Evicted                  0             21s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-t6thb    0/1     Evicted                  0             22s   <none>       k3s-node1    <none>           <none>
+pod/ingestion-dc2-b9f875d59-zcz5w    0/1     Evicted                  0             20s   <none>       k3s-node1    <none>           <none>
+pod/prometheus-7df4755987-pjdtw      0/1     Completed                1 (26m ago)   51m   10.42.0.23   k3s-master   <none>           <none>
+pod/prometheus-7df4755987-wvnc2      0/1     Pending                  0             7s    <none>       <none>       <none>           <none>
+pod/registry-5ddcf48556-5cclw        0/1     ContainerStatusUnknown   1             12m   10.42.0.26   k3s-master   <none>           <none>
+pod/registry-5ddcf48556-wbwvp        0/1     Pending                  0             25s   <none>       <none>       <none>           <none>
+pod/sensor-dc1-5674587469-ph28m      0/1     Pending                  0             10s   <none>       <none>       <none>           <none>
+pod/sensor-dc1-5674587469-qt47h      0/1     Error                    1 (26m ago)   52m   10.42.0.24   k3s-master   <none>           <none>
+pod/sensor-dc2-7977694bf7-lfbhm      0/1     Error                    1 (25m ago)   52m   10.42.1.10   k3s-node1    <none>           <none>
+pod/sensor-dc2-7977694bf7-qbcm8      0/1     Pending                  0             15s   <none>       <none>       <none>           <none>
+pod/storage-55d8b74767-jnzpf         0/1     Error                    0             11m   10.42.0.29   k3s-master   <none>           <none>
+pod/storage-55d8b74767-qjn4h         0/1     Pending                  0             21s   <none>       <none>       <none>           <none>
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE   SELECTOR
+service/analytics    NodePort    10.43.152.105   <none>        5003:30003/TCP   52m   app=analytics
+service/ingestion    NodePort    10.43.152.188   <none>        5001:30001/TCP   52m   app=ingestion
+service/prometheus   NodePort    10.43.82.105    <none>        9090:30090/TCP   51m   app=prometheus
+service/registry     ClusterIP   10.43.117.151   <none>        5050/TCP         52m   app=registry
+service/storage      ClusterIP   10.43.29.126    <none>        5002/TCP         52m   app=storage

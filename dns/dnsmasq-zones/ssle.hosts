@@ -1,5 +1,3 @@
-10.255.255.208  registry.ssle.local
-10.255.255.67   ingestion.ssle.local
-10.255.255.49   storage.ssle.local
-10.255.255.134  analytics.ssle.local
+10.255.255.139  ingestion.ssle.local
+10.255.255.139  analytics.ssle.local
 10.255.255.133  mail.ssle.local
