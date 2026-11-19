@@ -68,7 +68,7 @@ wazuh)
 
   step "Wazuh manager rules -> $WAZUH:/var/ossec/etc/rules/local_rules.xml"
   incus exec "$WAZUH" -- cp /var/ossec/etc/rules/local_rules.xml /var/ossec/etc/rules/local_rules.xml.bak
-  incus file push wazuh/ssle-rules.xml "$WAZUH/var/ossec/etc/rules/local_rules.xml"
+  incus file push --uid 0 --gid 0 --mode 0644 wazuh/ssle-rules.xml "$WAZUH/var/ossec/etc/rules/local_rules.xml"
   incus exec "$WAZUH" -- chown wazuh:wazuh /var/ossec/etc/rules/local_rules.xml
   if [ "$PLATFORM" = k3s ] && ! incus exec "$WAZUH" -- grep -q "<name>k3s-block</name>" /var/ossec/etc/ossec.conf; then
     incus exec "$WAZUH" -- cp /var/ossec/etc/ossec.conf /var/ossec/etc/ossec.conf.bak
@@ -89,14 +89,14 @@ prometheus)
   step "Prometheus config + rules -> $PROM:/etc/prometheus/ ($PLATFORM)"
   if [ "$PLATFORM" = k3s ]; then
     # central Prometheus only federates the in-cluster one (which scrapes the pods itself)
-    incus file push prometheus/prometheus-central-k3s.yml "$PROM/etc/prometheus/prometheus.yml"
+    incus file push --uid 0 --gid 0 --mode 0644 prometheus/prometheus-central-k3s.yml "$PROM/etc/prometheus/prometheus.yml"
   else
-    incus file push prometheus/prometheus.yml "$PROM/etc/prometheus/prometheus.yml"
+    incus file push --uid 0 --gid 0 --mode 0644 prometheus/prometheus.yml "$PROM/etc/prometheus/prometheus.yml"
   fi
-  incus file push prometheus/ssle_rules.yml "$PROM/etc/prometheus/ssle_rules.yml"
+  incus file push --uid 0 --gid 0 --mode 0644 prometheus/ssle_rules.yml "$PROM/etc/prometheus/ssle_rules.yml"
   # target file of the ssle-scale job: created empty once, then owned by test-scale.sh
   incus exec "$PROM" -- test -f /etc/prometheus/scale-targets.json \
-    || incus file push prometheus/scale-targets.json "$PROM/etc/prometheus/scale-targets.json"
+    || incus file push --uid 0 --gid 0 --mode 0644 prometheus/scale-targets.json "$PROM/etc/prometheus/scale-targets.json"
   if incus exec "$PROM" -- promtool check config /etc/prometheus/prometheus.yml; then
     # Reload (SIGHUP), not restart: on a reload Prometheus marks the series of removed targets as
     # stale at once; after a restart they stay visible for 5 min (old-IP "up == 0" ghosts).
@@ -110,8 +110,8 @@ prometheus)
 mail)
   step "Postfix hardening -> $MAIL (mynetworks = localhost, spam to the hold queue)"
   incus exec "$MAIL" -- cp /etc/postfix/main.cf /etc/postfix/main.cf.bak
-  incus file push mail/postfix-main.cf "$MAIL/etc/postfix/main.cf"
-  incus file push mail/header_checks "$MAIL/etc/postfix/header_checks"
+  incus file push --uid 0 --gid 0 --mode 0644 mail/postfix-main.cf "$MAIL/etc/postfix/main.cf"
+  incus file push --uid 0 --gid 0 --mode 0644 mail/header_checks "$MAIL/etc/postfix/header_checks"
   if incus exec "$MAIL" -- postfix check; then
     incus exec "$MAIL" -- postfix reload && echo "  ok, postfix reloaded"
     incus exec "$MAIL" -- postconf -h mynetworks header_checks | sed 's/^/    /'
@@ -123,7 +123,7 @@ mail)
 
 dns)
   step "restore-dns active response -> $DNS"
-  incus file push wazuh/active-response/restore-dns.sh "$DNS/var/ossec/active-response/bin/restore-dns.sh"
+  incus file push --uid 0 --gid 0 --mode 0644 wazuh/active-response/restore-dns.sh "$DNS/var/ossec/active-response/bin/restore-dns.sh"
   incus exec "$DNS" -- chown root:wazuh /var/ossec/active-response/bin/restore-dns.sh
   incus exec "$DNS" -- chmod 750 /var/ossec/active-response/bin/restore-dns.sh && echo "  ok"
 
@@ -146,9 +146,9 @@ dns)
   printf "$zone" > dns/dnsmasq.hosts.clean
   cp dns/dnsmasq.hosts.clean dns/dnsmasq-zones/ssle.hosts
   sed 's/^/    /' dns/dnsmasq.hosts.clean
-  incus file push dns/dnsmasq.conf "$DNS/etc/dnsmasq.conf"
-  incus file push dns/dnsmasq.hosts.clean "$DNS/etc/dnsmasq.hosts.clean"
-  incus file push dns/dnsmasq-zones/ssle.hosts "$DNS/etc/dnsmasq-zones/ssle.hosts"
+  incus file push --uid 0 --gid 0 --mode 0644 dns/dnsmasq.conf "$DNS/etc/dnsmasq.conf"
+  incus file push --uid 0 --gid 0 --mode 0644 dns/dnsmasq.hosts.clean "$DNS/etc/dnsmasq.hosts.clean"
+  incus file push --uid 0 --gid 0 --mode 0644 dns/dnsmasq-zones/ssle.hosts "$DNS/etc/dnsmasq-zones/ssle.hosts"
   if incus exec "$DNS" -- dnsmasq --test && incus exec "$DNS" -- systemctl restart dnsmasq; then
     echo "  ok, dnsmasq restarted"
   else

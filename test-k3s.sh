@@ -29,6 +29,15 @@ for pair in "$K3S_MASTER:dc1" "$K3S_NODE1:dc2"; do
   n=${pair%%:*}; dc=${pair##*:}
   [ "$(kctl get node "$n" -o jsonpath='{.metadata.labels.ssle\.dc}')" = "$dc" ] \
     && ok "$n is location $dc" || bad "$n has no ssle.dc=$dc label"
+  # Both nodes share the VM's disk and RAM: when it runs low the kubelet evicts every pod and
+  # taints the node, so nothing can be scheduled (pods "Evicted" / "Pending").
+  cond=$(kctl get node "$n" -o jsonpath='{range .status.conditions[*]}{.type}={.status} {end}')
+  echo "    $n: $cond" | tee -a "$EVID/0-nodes.txt"
+  if echo "$cond" | grep -qE '(Memory|Disk|PID)Pressure=True'; then
+    bad "$n is under resource pressure ($(echo "$cond" | grep -oE '[A-Za-z]+Pressure=True' | tr '\n' ' ')) - free memory/disk on the VM"
+  else
+    ok "$n has no memory/disk pressure"
+  fi
 done
 
 section "1. Workloads"
@@ -38,7 +47,7 @@ for d in $(kctl get deploy -o jsonpath='{.items[*].metadata.name}'); do
 done
 for dc in dc1 dc2; do
   want=$( [ "$dc" = dc1 ] && echo "$K3S_MASTER" || echo "$K3S_NODE1")
-  got=$(kctl get pods -l dc=$dc,app=ingestion -o jsonpath='{.items[*].spec.nodeName}')
+  got=$(kctl get pods -l dc=$dc,app=ingestion --field-selector=status.phase=Running -o jsonpath='{.items[*].spec.nodeName}')
   [ "$got" = "$want" ] && ok "ingestion-$dc runs on $want" || bad "ingestion-$dc runs on '$got' (expected $want)"
 done
 kctl get pods -l 'app in (registry,storage,ingestion,analytics,sensor)' -o jsonpath='{range .items[*]}{.spec.containers[0].image}{"\n"}{end}' \
@@ -46,10 +55,13 @@ kctl get pods -l 'app in (registry,storage,ingestion,analytics,sensor)' -o jsonp
 
 section "2. Registry: one entry per pod, hierarchical IDs"
 REG=$(internal_url registry)
-near curl -s "$REG/services" | python3 -m json.tool > "$EVID/2-registry-services.json"
+near curl -s --max-time 5 "$REG/services" | python3 -m json.tool > "$EVID/2-registry-services.json" 2>/dev/null \
+  || echo '{}' > "$EVID/2-registry-services.json"
 python3 - "$EVID/2-registry-services.json" <<'EOF' | tee "$EVID/2-registry-check.txt"
 import json, sys
 d = json.load(open(sys.argv[1]))
+if not d:
+    print("registry did not answer")
 for name in ("ingestion-service", "analytics-service"):
     insts = d.get(name, [])
     urls = {i["url"] for i in insts}
@@ -117,19 +129,29 @@ else
 fi
 
 section "7. Self-healing"
-OLD=$(kctl get pod -l app=ingestion,dc=dc1 -o jsonpath='{.items[0].metadata.name}')
-OLDIP=$(kctl get pod "$OLD" -o jsonpath='{.status.podIP}')
-kctl delete pod "$OLD" --wait=false >/dev/null
-kctl rollout status deploy ingestion-dc1 --timeout=90s >/dev/null
-NEW=$(kctl get pod -l app=ingestion,dc=dc1 --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')
-NEWIP=$(kctl get pod "$NEW" -o jsonpath='{.status.podIP}')
-[ -n "$NEW" ] && [ "$NEW" != "$OLD" ] && ok "pod $OLD replaced by $NEW" || bad "pod was not replaced"
-for i in $(seq 1 40); do
-  svcs=$(near curl -s "$REG/services/ingestion-service?dc=dc1&node=$K3S_MASTER")
-  echo "$svcs" | grep -q "$NEWIP" && break; sleep 1
-done
-echo "$svcs" | grep -q "$NEWIP" && ok "the new pod ($NEWIP) registered itself" || bad "new pod not in the registry"
-for i in $(seq 1 40); do near curl -s "$REG/services" | grep -q "$OLDIP:" || break; sleep 1; done
-near curl -s "$REG/services" | grep -q "$OLDIP:" && bad "old pod ($OLDIP) still registered" || ok "old pod ($OLDIP) removed by the health checker"
+running() { kctl get pod -l "$1" --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null; }
+OLD=$(running app=ingestion,dc=dc1)
+if [ -z "$OLD" ]; then
+  bad "no running ingestion-dc1 pod to delete (cluster not healthy, see sections 0-1)"
+else
+  OLDIP=$(kctl get pod "$OLD" -o jsonpath='{.status.podIP}')
+  kctl delete pod "$OLD" --wait=false >/dev/null
+  kctl rollout status deploy ingestion-dc1 --timeout=90s >/dev/null
+  NEW=""; for i in $(seq 1 30); do NEW=$(running app=ingestion,dc=dc1); [ -n "$NEW" ] && [ "$NEW" != "$OLD" ] && break; sleep 2; done
+  if [ -n "$NEW" ] && [ "$NEW" != "$OLD" ]; then
+    NEWIP=$(kctl get pod "$NEW" -o jsonpath='{.status.podIP}')
+    ok "pod $OLD replaced by $NEW ($NEWIP)"
+    svcs=""
+    for i in $(seq 1 40); do
+      svcs=$(near curl -s "$REG/services/ingestion-service?dc=dc1&node=$K3S_MASTER")
+      echo "$svcs" | grep -q "$NEWIP:" && break; sleep 1
+    done
+    echo "$svcs" | grep -q "$NEWIP:" && ok "the new pod ($NEWIP) registered itself" || bad "new pod $NEWIP not in the registry"
+    for i in $(seq 1 40); do near curl -s "$REG/services" | grep -q "$OLDIP:" || break; sleep 1; done
+    near curl -s "$REG/services" | grep -q "$OLDIP:" && bad "old pod ($OLDIP) still registered" || ok "old pod ($OLDIP) removed by the health checker"
+  else
+    bad "pod $OLD was not replaced by a running pod"
+  fi
+fi
 
 finish
