@@ -45,7 +45,12 @@ EOF
 }
 
 # Container IPv4 (exact name match).
-ip_of() { incus list "^$1\$" -c4 --format csv 2>/dev/null | grep -oE '^[0-9.]+' | head -1; }
+# IPv4 of a container's eth0 (the lab network). Containers running k3s or Docker also list
+# cni0/flannel/docker0 addresses, so the first address is not necessarily the right one.
+ip_of() {
+  local out; out=$(incus list "^$1\$" -c4 --format csv 2>/dev/null)
+  echo "$out" | grep -oE '[0-9]+(\.[0-9]+){3} \(eth0\)' | head -1 | cut -d' ' -f1 | grep .     || echo "$out" | grep -oE '[0-9]+(\.[0-9]+){3}' | head -1
+}
 
 # ---------------------------------------------------------------- platform: incus | k3s
 # PLATFORM=incus (default): one Incus container per service (deploy-incus.sh).

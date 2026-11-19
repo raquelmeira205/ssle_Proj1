@@ -20,7 +20,7 @@ OSSEC=/var/ossec/etc/ossec.conf
 LOGS='/var/log/ssle/*/access.log'
 part() { echo "$1" | tr 'A-Z.' 'a-z-'; }
 
-WAZUH_IP=${WAZUH_IP:-$(incus list "^$WAZUH_CONTAINER\$" -c4 --format csv | grep -oE '^[0-9.]+' | head -1)}
+WAZUH_IP=${WAZUH_IP:-$(incus list "^$WAZUH_CONTAINER\$" -c4 --format csv | grep -oE '[0-9]+(\.[0-9]+){3} \(eth0\)' | head -1 | cut -d' ' -f1)}
 [ -n "$WAZUH_IP" ] || { echo "Could not find the IP of $WAZUH_CONTAINER (set WAZUH_IP)"; exit 1; }
 VER=$(incus exec "$WAZUH_CONTAINER" -- /var/ossec/bin/wazuh-control info -v 2>/dev/null \
       | sed -n 's/^WAZUH_VERSION="v\(.*\)"/\1/p' | head -1)

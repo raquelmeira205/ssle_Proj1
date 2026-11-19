@@ -26,7 +26,12 @@ PARTS=${*:-"pin wazuh prometheus mail dns agents"}
 ERR=0
 step() { echo; echo "== $1"; }
 fail() { echo "  FAILED: $1"; ERR=$((ERR + 1)); }
-ip_of() { incus list "^$1\$" -c4 --format csv 2>/dev/null | grep -oE '^[0-9.]+' | head -1; }
+# IPv4 of a container's eth0 (the lab network). Containers running k3s or Docker also list
+# cni0/flannel/docker0 addresses, so the first address is not necessarily the right one.
+ip_of() {
+  local out; out=$(incus list "^$1\$" -c4 --format csv 2>/dev/null)
+  echo "$out" | grep -oE '[0-9]+(\.[0-9]+){3} \(eth0\)' | head -1 | cut -d' ' -f1 | grep .     || echo "$out" | grep -oE '[0-9]+(\.[0-9]+){3}' | head -1
+}
 
 for part in $PARTS; do case $part in
 
@@ -42,7 +47,7 @@ pin)
       incus config device set "$c" eth0 ipv4.address="$ip"
     else
       incus config device override "$c" eth0 ipv4.address="$ip" >/dev/null
-    fi && echo "  $c = $ip (pinned)"
+    fi && echo "  $c = $ip (pinned)" || fail "$c: could not pin $ip"
   done
   ;;
 
