@@ -19,28 +19,56 @@ TAG=${TAG:-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)}
   || TAG="$TAG-dirty-$(date +%H%M%S)"        # uncommitted code: never reuse a tag
 k() { incus exec "$MASTER" -- k3s kubectl "$@"; }
 step() { echo; echo "== $1"; }
+# retry <tries> <cmd...>: a busy VM can drop the connection to the Incus daemon
+# ("write unix @->/var/lib/incus/unix.socket: i/o timeout"); try again instead of aborting
+retry() {
+  local n=$1 i; shift
+  for i in $(seq 1 "$n"); do
+    "$@" && return 0
+    [ "$i" -lt "$n" ] && { echo "  (attempt $i failed, retrying in 10 s)"; sleep 10; }
+  done
+  return 1
+}
+# pushed <svc>: is the image with this tag already in the private registry?
+pushed() {
+  incus exec "$DOCKER" -- curl -sf "http://$REG/v2/ssle/$1/tags/list" 2>/dev/null | grep -q "\"$TAG\""
+}
+REG=${REG:-docker.incus:5000}
 
 step "1. Build and push the images (tag $TAG) in $DOCKER"
-incus exec "$DOCKER" -- sh -c 'rm -rf /root/ssle && mkdir -p /root/ssle'
+retry 3 incus exec "$DOCKER" -- sh -c 'rm -rf /root/ssle && mkdir -p /root/ssle'
 tar -cf - Dockerfile requirements.txt common.py build-and-push.sh registry storage ingestion analytics sensor \
   | incus exec "$DOCKER" -- tar -xf - -C /root/ssle
-incus exec "$DOCKER" -- sh -c "cd /root/ssle && TAG=$TAG bash build-and-push.sh"
+# one image per `incus exec` (short connections), skipping images already pushed: re-running
+# after an interruption resumes where it stopped
+for svc in registry storage ingestion analytics sensor; do
+  if pushed "$svc"; then
+    echo "  $svc:$TAG already in $REG, skipped"
+  else
+    retry 3 incus exec "$DOCKER" -- sh -c "cd /root/ssle && TAG=$TAG SERVICES=$svc bash build-and-push.sh" \
+      || { echo "building $svc failed 3 times; check the VM's free memory (free -h) and re-run"; exit 1; }
+  fi
+done
 
 step "2. SSLE services (k8s/ssle.yaml)"
-sed "s/__TAG__/$TAG/g" k8s/ssle.yaml | k apply -f -
+apply_services() { sed "s/__TAG__/$TAG/g" k8s/ssle.yaml | k apply -f -; }
+retry 3 apply_services
 
 step "3. In-cluster Prometheus (k8s/monitoring.yaml)"
-incus file push k8s/prometheus-k8s.yml "$MASTER/tmp/prometheus.yml"
-incus file push prometheus/ssle_rules.yml "$MASTER/tmp/ssle_rules.yml"
-k -n ssle create configmap prometheus-config \
-  --from-file=prometheus.yml=/tmp/prometheus.yml --from-file=ssle_rules.yml=/tmp/ssle_rules.yml \
-  --dry-run=client -o yaml | k apply -f -
 HASH=$(cat k8s/prometheus-k8s.yml prometheus/ssle_rules.yml | sha256sum | cut -c1-12)
-sed "s/__CONFIG_HASH__/$HASH/" k8s/monitoring.yaml | k apply -f -
+apply_monitoring() {
+  incus file push k8s/prometheus-k8s.yml "$MASTER/tmp/prometheus.yml" &&
+  incus file push prometheus/ssle_rules.yml "$MASTER/tmp/ssle_rules.yml" &&
+  k -n ssle create configmap prometheus-config \
+    --from-file=prometheus.yml=/tmp/prometheus.yml --from-file=ssle_rules.yml=/tmp/ssle_rules.yml \
+    --dry-run=client -o yaml | k apply -f - &&
+  sed "s/__CONFIG_HASH__/$HASH/" k8s/monitoring.yaml | k apply -f -
+}
+retry 3 apply_monitoring
 
 step "4. Rollouts"
-for d in $(k -n ssle get deploy -o name); do
-  k -n ssle rollout status "$d" --timeout=180s
+for d in $(retry 3 k -n ssle get deploy -o name); do
+  retry 2 k -n ssle rollout status "$d" --timeout=180s
 done
 k -n ssle get pods -o wide
 echo
