@@ -56,11 +56,16 @@ retry 3 apply_services
 
 step "3. In-cluster Prometheus (k8s/monitoring.yaml)"
 HASH=$(cat k8s/prometheus-k8s.yml prometheus/ssle_rules.yml | sha256sum | cut -c1-12)
+# The config files go to a root-only folder through stdin. Pushing them into /tmp with
+# `incus file push` failed on the second run: the first push kept the host user's ownership, and
+# /tmp (sticky, protected_regular) refuses to let even root overwrite another user's file there.
+DIR=/root/ssle-k8s
 apply_monitoring() {
-  incus file push k8s/prometheus-k8s.yml "$MASTER/tmp/prometheus.yml" &&
-  incus file push prometheus/ssle_rules.yml "$MASTER/tmp/ssle_rules.yml" &&
+  incus exec "$MASTER" -- mkdir -p "$DIR" &&
+  incus exec "$MASTER" -- sh -c "cat > $DIR/prometheus.yml" < k8s/prometheus-k8s.yml &&
+  incus exec "$MASTER" -- sh -c "cat > $DIR/ssle_rules.yml" < prometheus/ssle_rules.yml &&
   k -n ssle create configmap prometheus-config \
-    --from-file=prometheus.yml=/tmp/prometheus.yml --from-file=ssle_rules.yml=/tmp/ssle_rules.yml \
+    --from-file=prometheus.yml=$DIR/prometheus.yml --from-file=ssle_rules.yml=$DIR/ssle_rules.yml \
     --dry-run=client -o yaml | k apply -f - &&
   sed "s/__CONFIG_HASH__/$HASH/" k8s/monitoring.yaml | k apply -f -
 }
