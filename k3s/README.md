@@ -152,3 +152,8 @@ To go back to monitoring the Incus deployment from the central Prometheus:
   File-integrity monitoring can't see that; it would need Kubernetes audit logs sent to Wazuh.
   Future work.
 - Storage is still a single SQLite pod, so scaling ingestion still doesn't add write capacity.
+- **Probes can amplify an overload.** On the first deploy the VM ran out of memory and swapped.
+  Liveness probes with a 1 s timeout made the kubelet kill healthy but slow pods (exit 137). During a
+  flood the same thing would restart the attacked pod. The probes now allow a 5 s timeout and
+  restart a pod only after about 60 s without answers. Readiness (3 s timeout) still takes a
+  struggling pod out of the Service.

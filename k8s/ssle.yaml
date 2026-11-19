@@ -47,8 +47,8 @@ spec:
             - { name: POD_IP, valueFrom: { fieldRef: { fieldPath: status.podIP } } }
             - { name: SERVICE_URL, value: "http://$(POD_IP):5050" }   # the POD, not the Service
             - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
-          readinessProbe: { httpGet: { path: /health, port: 5050 }, periodSeconds: 5 }
-          livenessProbe: { httpGet: { path: /health, port: 5050 }, periodSeconds: 10, failureThreshold: 3 }
+          readinessProbe: { httpGet: { path: /health, port: 5050 }, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: 5050 }, initialDelaySeconds: 20, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6 }   # restart only after ~60 s of silence: a pod that is merely slow (flood, busy VM) is not killed
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
@@ -103,8 +103,8 @@ spec:
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: DB_PATH, value: /data/temp_data.db }
             - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
-          readinessProbe: { httpGet: { path: /health, port: 5002 }, periodSeconds: 5 }
-          livenessProbe: { httpGet: { path: /health, port: 5002 }, periodSeconds: 10, failureThreshold: 3 }
+          readinessProbe: { httpGet: { path: /health, port: 5002 }, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: 5002 }, initialDelaySeconds: 20, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6 }   # restart only after ~60 s of silence: a pod that is merely slow (flood, busy VM) is not killed
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
@@ -154,8 +154,8 @@ spec:
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
             - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
-          readinessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 5 }
-          livenessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 10, failureThreshold: 3 }
+          readinessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: 5001 }, initialDelaySeconds: 20, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6 }   # restart only after ~60 s of silence: a pod that is merely slow (flood, busy VM) is not killed
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
@@ -194,8 +194,8 @@ spec:
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
             - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
-          readinessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 5 }
-          livenessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 10, failureThreshold: 3 }
+          readinessProbe: { httpGet: { path: /health, port: 5001 }, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: 5001 }, initialDelaySeconds: 20, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6 }   # restart only after ~60 s of silence: a pod that is merely slow (flood, busy VM) is not killed
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
@@ -243,8 +243,8 @@ spec:
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
             - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
-          readinessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 5 }
-          livenessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 10, failureThreshold: 3 }
+          readinessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: 5003 }, initialDelaySeconds: 20, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6 }   # restart only after ~60 s of silence: a pod that is merely slow (flood, busy VM) is not killed
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
@@ -283,8 +283,8 @@ spec:
             - { name: REGISTRY_URL, value: "http://registry:5050" }
             - { name: STORAGE_URL, value: "http://storage:5002" }
             - { name: ACCESS_LOG, value: /var/log/ssle/access.log }
-          readinessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 5 }
-          livenessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 10, failureThreshold: 3 }
+          readinessProbe: { httpGet: { path: /health, port: 5003 }, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: 5003 }, initialDelaySeconds: 20, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6 }   # restart only after ~60 s of silence: a pod that is merely slow (flood, busy VM) is not killed
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 500m, memory: 256Mi }    # also caps what a flood can take from the node
