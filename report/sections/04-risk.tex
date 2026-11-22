@@ -4,7 +4,7 @@
 \subsection{Attack surface}
 
 Table~\ref{tab:surface} lists every entry point of the deployment in Figure~\ref{fig:arch}, who can
-reach it, the threat it enables and the control we have. Digital surface dominates: there are no
+reach it, the threat it enables and the control in place. Digital surface dominates: there are no
 user accounts and the physical surface is a single host.
 
 \begin{table}[ht]
@@ -32,16 +32,16 @@ Wazuh dashboard (443) & lab network & blinding or misleading the defender & logi
 \subsection{Attack and defense tree}
 
 Figure~\ref{fig:adtree} refines the attacker goal \emph{disrupt or subvert the temperature service}
-into the attacks we considered, with our countermeasures attached as defence nodes, in the notation
+into the attacks considered, with the implemented countermeasures attached as defence nodes, in the notation
 of attack--defense trees~\cite{kordy2010adtrees}. All children are OR-refinements: each leaf alone
-reaches its parent goal. Grey nodes mark attacks for which we have no defence; they are the
+reaches its parent goal. Grey nodes mark attacks with no defence in the system; they are the
 limitations discussed in Section~\ref{sec:concl}. The three threats of Section~\ref{sec:threats}
 correspond to the DoS, DNS and junk-email branches.
 
 \begin{figure}[ht]
 \centering
 \resizebox{\textwidth}{!}{\input{figures/adtree}}
-\caption{Attack--defense tree. Red ellipses: attacks; green boxes: our defences; grey boxes:
+\caption{Attack--defense tree. Red ellipses: attacks; green boxes: implemented defences; grey boxes:
 no effective defence in the current system.}
 \label{fig:adtree}
 \end{figure}
@@ -78,7 +78,7 @@ requires the errors to persist and excludes floods; and on Kubernetes a pod scal
 
 \subsection{Fault management (FCAPS) and the security gap}
 
-Figure~\ref{fig:fcaps} maps the FCAPS fault-management workflow~\cite{itu2000m3400} to our tools.
+Figure~\ref{fig:fcaps} maps the FCAPS fault-management workflow~\cite{itu2000m3400} to the tools used.
 Prometheus covers the classic part: it \emph{detects} anomalies, the hierarchical ID
 \emph{isolates} the element, the root-cause rules \emph{correlate} symptoms, the registry and
 Kubernetes \emph{resolve} failed instances, and each test produces the \emph{post-mortem}. The

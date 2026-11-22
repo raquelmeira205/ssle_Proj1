@@ -115,61 +115,18 @@ alert cleared after restart & 7.1~s & 10.8~s \\
 \subsection{Repeated runs}
 \label{sec:repeat}
 
-Each k3s test was repeated five times back to back (scalability three times) to see how stable the
-single-run numbers are (Table~\ref{tab:repeat}).
-
-\begin{table}[ht]
-\centering\small
-\caption{Repeated runs on k3s (21 November): mean $\pm$ standard deviation and range.}
-\label{tab:repeat}
-\begin{tabular}{@{}l l r@{}}
-\toprule
-Test & quantity & mean $\pm$ sd (min--max), runs \\
-\midrule
-DNS hijack & alert after hijack & 0.12 $\pm$ 0.04~s (0.1--0.2), 5 \\
-           & zone restored after & 0.28 $\pm$ 0.08~s (0.2--0.4), 5 \\
-           & exposure seen by client & 0~s in all 5 \\
-Junk email flood & first \rid{100222} alert & 1.8 $\pm$ 0.7~s (1.2--2.7), 5 \\
-                 & source blocked after & 3.0 $\pm$ 2.5~s (1.5--7.3), 5 \\
-Root cause & \code{SSLERootCauseStorageDown} firing & 40.9 $\pm$ 2.6~s (38--44), 5 \\
-           & registry removed storage & 52.7 $\pm$ 2.2~s (49.6--54.9), 5 \\
-           & alert cleared after restart & 5.3 $\pm$ 2.5~s (1.5--7.1), 5 \\
-DoS & first \rid{100210} alert & 1.8, \emph{none}, 17.4, 1.6, 1.8~s (per run) \\
-    & legitimate success, mitigated & 100, 0, 38, 100, 100\,\% (per run) \\
-Scalability & ingestion speed-up (2 vs 1) & 0.37, 1.37, 1.27$\times$ (per run) \\
-            & analytics speed-up & 5.66, 1.16, 1.22$\times$ (per run) \\
-            & \code{location:*} share of raw federation & 0.71 $\pm$ 0.01\,\%, 3 \\
-            & registry lookup with 2000 instances & p50 4.4 $\pm$ 0.6~ms, p95 47.5 $\pm$ 10.4~ms, 3 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-DNS restoration, the mail flood response, the root-cause diagnosis and the monitoring bandwidth
-are stable. The DoS defence is not. In three of five runs the attackers were blocked within about
-3~s and the legitimate client got 100\% of its requests through. In run~2 the analytics pod
-completed \emph{no} request during the mitigated phase, so nothing was logged and Wazuh detected
-nothing: the extreme case of the logging-on-completion weakness described in
-Section~\ref{sec:threats}. Run~3 started while the service was still overloaded (its baseline
-already failed), and detection took 17.4~s. The defence therefore depends on the attacked service
-staying responsive enough to log the attack. The root-cause test also failed one of its own checks
-in four runs because the previous run's symptom alert, computed over a one-minute window, had not
-cleared yet; the diagnosis itself was correct in all five.
-
-The scalability results vary too much to support a speed-up figure. Runs 2 and 3 agree (ingestion
-1.37$\times$ and 1.27$\times$, analytics 1.16$\times$ and 1.22$\times$), but in run~1 the one-instance
-analytics phase reached only 7.4~req/s, and at the end of that run the registry pod was killed by
-its liveness probe (exit 137) after the 2000-instance benchmark, presumably because checking 2000 unreachable instances kept it
-too busy to answer \code{/health} in time. The single-run speed-ups in
-Table~\ref{tab:scale} should be read as indicative only.
-
-\paragraph{Monitoring cost.} During the repeated scalability runs (samples every 5~s), the
-in-cluster Prometheus used at most 44 millicores of CPU and 51--109~MiB of memory, with about 2\,200
-active series; the central Prometheus container used 59--143~MiB. The Wazuh manager container used
-2.0--2.6~GiB, by far the largest share of the monitoring and security stack on this host.
+Each k3s test was repeated five times (scalability three times). DNS restoration
+(0.28~$\pm$~0.08~s, no wrong answer seen by the client), the mail-flood block (3.0~$\pm$~2.5~s), the
+root-cause alert (40.9~$\pm$~2.6~s) and the monitoring bandwidth (0.71\,\% of a raw federation) were
+stable. The DoS defence was not: it blocked the attackers within about 3~s in three runs, but in
+one run the overloaded service logged nothing, so nothing was detected, and in another detection
+took 17.4~s. The scalability speed-ups varied widely (ingestion 0.37--1.37$\times$), so the
+single-run figures in Table~\ref{tab:scale} are indicative only. The raw data is in
+\code{evidence/k3s/repeats/}.
 
 \subsection{SIEM throughput per node}
 
-We wrote synthetic access-log lines on one k3s node at increasing rates for 30~s each and counted
+Synthetic access-log lines were written on one k3s node at increasing rates for 30~s each, counting
 how many became alerts at the manager and how late (log timestamp to alert timestamp). Each line
 used a different source address, so no active response was triggered. Up to 500 lines/s every line
 became an alert within about 2~s; above that the node's agent delivered at most about 590 events/s,
@@ -178,8 +135,8 @@ lost the rest and logged \emph{Agent buffer is full: Events may be lost}
 with a 5000-event queue. Because one agent serves a whole node, a flood of more than about 500
 logged requests per second on one node \emph{blinds the SIEM for every pod on that node}: the
 first 15 requests still trigger \rid{100210}, but other events from the same node (for example
-5xx errors from an unrelated pod) can be lost or arrive 11--15~s late. We did not measure the
-manager's own limit, which a higher agent limit would expose.
+5xx errors from an unrelated pod) can be lost or arrive 11--15~s late. The
+manager's own limit was not measured; a higher agent limit would expose it.
 
 \begin{table}[ht]
 \centering\small
@@ -208,7 +165,7 @@ lines/s & written & alerts & lost & p50 latency & p95 latency \\
         instance), and unfiltered queries grow linearly. A registry per location, with the
         hierarchy delegated like DNS zones, would bound both.
   \item \textbf{Prometheus} is one server per site plus a central one; federation of aggregates keeps
-        the central load proportional to the number of locations. At our size it is cheap (at most
+        the central load proportional to the number of locations. At this size it is cheap (at most
         44 millicores and about 100~MiB for about 2\,200 series); its cost grows with the number of
         series, i.e.\ with instances and label combinations, which is why no client-controlled value
         is used as a label.
@@ -219,8 +176,8 @@ lines/s & written & alerts & lost & p50 latency & p95 latency \\
         evicted every pod and blocked scheduling on both nodes. In a real multi-site deployment
         this failure would stay local to one site.
   \item \textbf{Operations.} After a reboot of the VM the Wazuh manager failed to start (its start-up
-        timed out on the busy host) and nothing alerted on it: the SIEM was silently down until we
-        noticed missing alerts. The stock service allows 45~s to start and never retries; we added a
-        systemd override (5~min, restart on failure). Monitoring the SIEM itself (an \code{up}
+        timed out on the busy host) and nothing alerted on it: the SIEM was silently down until the
+        missing alerts were noticed. The stock service allows 45~s to start and never retries; a
+        systemd override was added (5~min, restart on failure). Monitoring the SIEM itself (an \code{up}
         check on the manager) would still be needed to notice such a failure.
 \end{itemize}

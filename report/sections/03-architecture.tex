@@ -97,7 +97,7 @@ level is the physical machine.}
 Registration is decentralised: each instance posts \code{\{name, url, id, location\}} to the
 registry every 10~s. The call is an idempotent upsert, so it doubles as a heartbeat and recovers
 automatically when the registry restarts. On Kubernetes each pod registers its own pod IP; with the
-Service address all replicas collapsed into one entry, which we found and fixed. The registry checks
+Service address all replicas collapsed into one entry, a problem found and fixed during development. The registry checks
 every instance's \code{/health} every 10~s and removes it after two consecutive failures. Queries
 can be filtered by any level (\code{/services?dc=dc2}), and \code{/tree} returns instance counts per
 country, region, dc, rack and node.
@@ -108,7 +108,7 @@ Location is used, not only recorded:
 \begin{itemize}
   \item \textbf{Discovery prefers the closest instance.} A service first asks for instances in its own
         location up to a configurable scope (default: same dc), then any location, then a static
-        fallback. The dc2 sensor therefore feeds the dc2 ingestion pod, which we verified
+        fallback. The dc2 sensor therefore feeds the dc2 ingestion pod, as verified
         (Section~\ref{sec:eval}).
   \item \textbf{Each location serves its own clients.} The NodePorts use
         \code{externalTrafficPolicy: Local}, so a node only forwards to its own pods and keeps the

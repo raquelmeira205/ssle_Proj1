@@ -10,7 +10,7 @@ not hurt the system they protect.
 
 The objective of this project is to design and run a service-based architecture that scales to
 large scale, monitor it with Prometheus, and integrate it with a SIEM (Wazuh) that detects three
-types of incident from the course syllabus and responds automatically. We built a small IoT
+types of incident from the course syllabus and responds automatically. The system is a small IoT
 pipeline in which temperature sensors send readings to an ingestion service, which stores them
 through a storage service, while an analytics service computes statistics and a registry provides
 naming and discovery. The platform runs as Docker images in a two-node Kubernetes (k3s) cluster in

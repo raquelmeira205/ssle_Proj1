@@ -36,14 +36,15 @@
 \title{Threat Detection, Monitoring and Prevention\\in a Location-Aware Service Platform\\[4pt]
   \large Security in Large Scale Systems --- Project 1}
 \author{Raquel Meira - 118928\\
-  Universidade de Aveiro, DETI}
+  Universidade de Aveiro, DETI\\[4pt]
+  \small Code and configuration: \url{https://github.com/raquelmeira205/ssle_Proj1}}
 \date{November 2026}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We designed, deployed and attacked a small service-based IoT platform (temperature sensors,
+This report presents the design, deployment and attack testing of a small service-based IoT platform (temperature sensors,
 ingestion, storage, analytics and a service registry) that is built to grow across locations. Every
 element gets a hierarchical name, from \emph{service instance} up to \emph{country}, that is the
 same in the registry, in Prometheus, in Wazuh and in every log line, so any metric or security event
@@ -54,7 +55,7 @@ root-cause alert, and exports per-location aggregates that cut federation traffi
 raw federation. Wazuh detects three syllabus threats (a massive HTTP denial of service, junk email,
 and DNS hijacking) and responds automatically: a tampered DNS zone was restored in
 0.28~s on average over five runs, and flood sources were blocked within about 3~s in three of five
-runs, but not when the attacked service was too overloaded to log the attack. We report what worked,
+runs, but not when the attacked service was too overloaded to log the attack. The report covers what worked,
 what failed (including defences that caused their own outage), and where the design stops scaling.
 \end{abstract}
 
@@ -71,7 +72,7 @@ what failed (including defences that caused their own outage), and where the des
 
 \section*{Use of AI tools}
 AI assistance was used for drafting and wording support. The architecture, implementation,
-experiments and analysis are the authors' own.
+experiments and analysis are the author's own.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

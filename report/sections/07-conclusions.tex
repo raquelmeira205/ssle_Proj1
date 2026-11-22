@@ -20,7 +20,7 @@ pod logs, and gentler liveness probes.
   \item \textbf{Detection depends on the victim.} Requests are logged when they complete, so a
         service too overloaded to answer is also too overloaded to be protected: in one of five
         DoS runs nothing was detected at all.
-  \item \textbf{Per-source thresholds.} Both flood rules count requests per source address. In our
+  \item \textbf{Per-source thresholds.} Both flood rules count requests per source address. In the
         test, 40 sources at one request per second each produced no Wazuh alert at all; only
         Prometheus saw the flood, and nothing responds automatically.
   \item \textbf{The SIEM can be blinded.} Each node's agent forwards at most about 500 events per
@@ -40,7 +40,7 @@ pod logs, and gentler liveness probes.
         Wazuh manager, privileged k3s nodes, and all locations on one machine: the numbers are lower
         bounds, the scalability measurements are noisy (Section~\ref{sec:repeat}), and the root of
         the deployment is a single failure domain.
-  \item \textbf{Defences can hurt.} Twice the DoS response blocked our own service, and the liveness
+  \item \textbf{Defences can hurt.} Twice the DoS response blocked the platform's own service, and the liveness
         probes once killed healthy pods under load. Every response needs its own false-positive
         test.
 \end{itemize}

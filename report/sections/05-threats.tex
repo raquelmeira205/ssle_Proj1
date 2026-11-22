@@ -1,7 +1,7 @@
 \section{Approach to the Three Threats}
 \label{sec:threats}
 
-We chose three threats from the syllabus: \emph{massive denial-of-service disruptions},
+Three threats were chosen from the syllabus: \emph{massive denial-of-service disruptions},
 \emph{junk email} and \emph{route and signal hijacking} (as DNS hijacking).
 Table~\ref{tab:threats} summarises detection, response and the measured result on the main (k3s)
 platform. Each proof of concept is an automated script that prints a threat card, runs the attack
@@ -30,7 +30,7 @@ DNS hijacking & FIM real time: \rid{550}$\to$\rid{100230} on the zone file & \co
 \paragraph{Description.}
 An attacker sends far more requests than a service can handle, so legitimate requests are delayed
 or dropped. At large scale the sources are many (botnets such as Mirai~\cite{antonakakis2017mirai});
-our PoC uses a few sources, which is the case our defence targets.
+the PoC uses a few sources, which is the case the defence targets.
 
 \paragraph{Why it is relevant here.}
 Analytics is the most exposed and most expensive endpoint: one \code{/stats?limit=1000} call makes
@@ -58,7 +58,7 @@ rate, latency and backlog per job, and \code{SSLERootCauseRequestFlood} combines
 Rule \rid{100210} triggers an active response on the agent that saw the flood, for 60~s. The stock
 \code{firewall-drop} adds a DROP rule to the \code{INPUT} chain, which works for the Incus
 containers but not for Kubernetes: NodePort traffic is translated by \code{kube-proxy} and then
-\emph{forwarded} to the pod, so it never crosses \code{INPUT}. We wrote \code{k3s-block}, which
+\emph{forwarded} to the pod, so it never crosses \code{INPUT}. A custom script, \code{k3s-block},
 implements the Wazuh active-response protocol and inserts the DROP into the \code{raw} table's
 \code{PREROUTING} chain, before \code{kube-proxy}. Because of \code{externalTrafficPolicy: Local},
 the node that sees the flood is the node the attacker uses, so blocking locally is enough.
@@ -123,7 +123,7 @@ Table~\ref{tab:ddos} shows single runs. Repeating the k3s test five times
 overloaded that detection took 17.4~s or did not happen.
 
 \paragraph{Distributed flood (false negative).}
-A per-source threshold cannot see an attack spread over many sources. We tested it with 40
+A per-source threshold cannot see an attack spread over many sources. This was tested with 40
 source addresses (secondary addresses on the two attacker containers), each sending one request
 per second, below the 1.5 per second that \rid{100210} needs, for 40~s against the same
 endpoint; the generator skips missed slots instead of sending them in bursts. The service received
@@ -143,7 +143,7 @@ third parties.
 
 \paragraph{Why it is relevant here.}
 The mail server is the operators' channel (alerts, notifications) and is reachable from the lab
-network. A flood fills its queues; an open relay would make our platform a spam source and get it
+network. A flood fills its queues; an open relay would make the platform a spam source and get it
 blacklisted; phishing reaching operators is the usual first step of an intrusion.
 
 \paragraph{How it can be exploited (PoC).}
@@ -176,13 +176,13 @@ sender was never blocked and could send during the block, and the attacker could
 block: 2 completed in the Incus run and all 12 in the k3s run. With a threshold of 10 messages, up
 to about 10 messages from a new source are accepted before the block.
 
-GTUBE only proves that the pipeline works. To measure detection we passed 500 spam and 500
-legitimate (\emph{easy ham}) messages from the SpamAssassin public corpus (2003) through the
+GTUBE only proves that the pipeline works. To measure detection, 500 spam and 500
+legitimate (\emph{easy ham}) messages from the SpamAssassin public corpus (2003) were passed through the
 production \code{spamd} (Table~\ref{tab:corpus}); Bayes auto-learning left no database behind. At the
 configured threshold 70\% of the spam was caught and 10\% of the legitimate mail would have been
 quarantined; lowering the threshold to 3.0 catches more spam but flags almost half of the
 legitimate mail. The corpus is old, so its spam may miss current rules and its legitimate mail may
-trip date-based ones; we did not analyse which rules caused the false positives. Without Bayes
+trip date-based ones; which rules caused the false positives was not analysed. Without Bayes
 training and network tests, content filtering alone is weak, which is why the quarantine is
 reviewed by an operator rather than deleting mail. Other limitations: a sender that rotates
 addresses or stays under 10 messages per 30~s is not blocked.
@@ -206,7 +206,7 @@ Threshold & spam detected & legitimate flagged (false positive) \\
 
 \paragraph{Description.}
 The attacker changes the answer to a name lookup so that clients reach a machine of the attacker's
-choice instead of the real service. We consider tampering with the authoritative zone, the case
+choice instead of the real service. This work considers tampering with the authoritative zone, the case
 behind the 2019 DNS infrastructure hijacking campaigns~\cite{cisa2019ed1901}.
 
 \paragraph{Why it is relevant here.}
@@ -222,7 +222,7 @@ The test overwrites the zone file \code{/etc/dnsmasq-zones/ssle.hosts} so that
 
 \paragraph{Monitoring and mitigation metrics.}
 The DNS host's agent monitors \code{/etc/dnsmasq-zones} with real-time file-integrity monitoring
-(all checks). A change raises Wazuh rule \rid{550} (integrity checksum changed), and our rule
+(all checks). A change raises Wazuh rule \rid{550} (integrity checksum changed), and the custom rule
 \rid{100230} (level 12) matches it for the zone file. The client's resolution timeline measures the
 exposure window.
 
