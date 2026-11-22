@@ -67,6 +67,14 @@ wazuh)
   incus exec "$WAZUH" -- grep -q "etc/lists/ssle-services" /var/ossec/etc/ossec.conf \
     || incus exec "$WAZUH" -- sed -i '0,/<ruleset>/s#<ruleset>#<ruleset>\n    <list>etc/lists/ssle-services</list>#' /var/ossec/etc/ossec.conf
 
+  # The stock unit allows 45 s to start and never retries: after a VM reboot the manager timed out
+  # on the busy host and the SIEM stayed down silently. 5 min + restart on failure.
+  step "systemd override for wazuh-manager (start timeout, restart on failure)"
+  incus exec "$WAZUH" -- mkdir -p /etc/systemd/system/wazuh-manager.service.d
+  incus file push --uid 0 --gid 0 --mode 0644 wazuh/manager-systemd-override.conf \
+    "$WAZUH/etc/systemd/system/wazuh-manager.service.d/override.conf"
+  incus exec "$WAZUH" -- systemctl daemon-reload && echo "  ok"
+
   step "Wazuh manager rules -> $WAZUH:/var/ossec/etc/rules/local_rules.xml"
   incus exec "$WAZUH" -- cp /var/ossec/etc/rules/local_rules.xml /var/ossec/etc/rules/local_rules.xml.bak
   incus file push --uid 0 --gid 0 --mode 0644 wazuh/ssle-rules.xml "$WAZUH/var/ossec/etc/rules/local_rules.xml"

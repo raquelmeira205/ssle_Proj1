@@ -1,0 +1,23 @@
+% Figure 4: FCAPS fault-management workflow mapped to our tooling (FACTS.md sections 5, 6, 8, 9).
+\begin{tikzpicture}[
+  font=\scriptsize,
+  stage/.style={draw, rounded corners=3pt, fill=blue!12, minimum width=21mm, minimum height=7mm, align=center, font=\scriptsize\bfseries},
+  tool/.style={draw, rounded corners=2pt, fill=gray!8, text width=21mm, align=left, font=\tiny},
+  arr/.style={-{Stealth[length=2mm]}, thick, orange!70!black}
+]
+\node[stage] (d) at (0,0)     {Detecting};
+\node[stage] (i) at (2.75,0)  {Diagnosing \&\\Isolating};
+\node[stage] (c) at (5.5,0)   {Correlating};
+\node[stage] (r) at (8.25,0)  {Resolution /\\Mitigation};
+\node[stage] (p) at (11,0)    {Post-mortem};
+\foreach \a/\b in {d/i,i/c,c/r,r/p} \draw[arr] (\a) -- (\b);
+
+\node[tool, below=3mm of d] {Prometheus: \code{up}, rates, p95, in-flight (5\,s)\\Wazuh: access logs (100200), FIM (550), Postfix/spamd};
+\node[tool, below=3mm of i] {hierarchical ID in every metric, alert and log line $\Rightarrow$ service, pod, node, rack, dc};
+\node[tool, below=3mm of c] {\code{ssle-root-cause} rules labelled \code{kind=}\\\code{symptom} or \code{root-cause}\\Wazuh frequency rules 100210, 100222};
+\node[tool, below=3mm of r] {active responses: k3s-block, firewall-drop, restore-dns\\registry drops dead instances; Kubernetes restarts pods};
+\node[tool, below=3mm of p] {test scripts: threat card, timings, false positives, \code{summary.txt} per threat};
+
+\node[font=\tiny\itshape, align=center, text width=60mm] at (5.5,0.85)
+  {classic FCAPS fault management (Prometheus) \;+\; explicit security events (Wazuh)};
+\end{tikzpicture}

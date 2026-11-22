@@ -1,0 +1,4 @@
+threshold 5.0: spam detected 349/500 (69.8%), ham flagged 52/500 (10.4%)
+threshold 3.0: spam detected 438/500 (87.6%), ham flagged 226/500 (45.2%)
+median score spam 9.6, ham 1.8
+corpus: SpamAssassin public corpus 20030228 (500 spam, first 500 easy_ham); Bayes untrained; network tests as configured

@@ -1,0 +1,6 @@
+  spam content : flagged by SpamAssassin -> quarantined on hold
+  open relay   : refused
+  flood        : 12/12 sessions reached Postfix, 12 completed; first 100222 alert after 2.7 s; blocked after 7.3 s
+  false positive (legit sender blocked): no
+  limitations  : GTUBE is a test signature (real spam needs Bayes/RBL tuning); a spammer that rotates IPs or
+                 stays under 10 messages/30 s is not blocked; quarantined mail must be reviewed by an operator.

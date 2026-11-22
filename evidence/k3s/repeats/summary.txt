@@ -1,0 +1,27 @@
+Repeated k3s runs (report/experiments/repeat-tests.sh), 2026-11-21
+
+DoS (5 runs, 3 fully passed)
+  detection s      : mean 5.65, sd 7.83, min 1.6, max 17.4 (n=4)
+  time to block s  : mean 6.46, sd 7.19, min 1.9, max 18.2 (n=8)
+  legit success unmitigated %: [29.0, 14.0, 25.0, 56.0, 92.0]
+  legit success mitigated %  : [100.0, 0.0, 38.0, 100.0, 100.0]
+
+Junk email flood (5 runs)
+  first 100222 alert s: mean 1.80, sd 0.66, min 1.2, max 2.7 (n=5)
+  blocked after s     : mean 2.98, sd 2.50, min 1.5, max 7.3 (n=5)
+
+DNS hijack (5 runs)
+  alert s   : mean 0.12, sd 0.04, min 0.1, max 0.2 (n=5)
+  restored s: mean 0.28, sd 0.08, min 0.2, max 0.4 (n=5)
+  exposure s: mean 0.00, sd 0.00, min 0, max 0 (n=5)
+
+Root cause (5 runs)
+  root-cause alert s : mean 40.94, sd 2.63, min 38, max 44 (n=5)
+  registry removal s : mean 52.66, sd 2.20, min 49.6, max 54.9 (n=5)
+  cleared after s    : mean 5.26, sd 2.49, min 1.5, max 7.1 (n=5)
+
+Scale (3 runs)
+  ingestion 1 inst req/s: mean 82.90, sd 8.56, min 75.8, max 92.4 (n=3) | 2 inst: mean 83.47, sd 47.27, min 29.4, max 117 (n=3) | speed-up: mean 1.00x, sd 0.55, min 0.37, max 1.37 (n=3)
+  analytics 1 inst req/s: mean 69.60, sd 58.69, min 7.4, max 124 (n=3) | 2 inst: mean 94.23, sd 54.57, min 41.9, max 150.8 (n=3) | speed-up: mean 2.68x, sd 2.58, min 1.16, max 5.66 (n=3)
+  aggregates as % of raw federation: mean 0.71%, sd 0.01, min 0.703481, max 0.716215 (n=3)
+  registry lookup p50 ms (2000 inst): mean 4.40, sd 0.60, min 3.8, max 5 (n=3) | p95: mean 47.50, sd 10.41, min 38.3, max 58.8 (n=3)

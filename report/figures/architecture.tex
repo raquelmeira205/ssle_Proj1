@@ -1,0 +1,64 @@
+% Figure 1: deployment on k3s (main platform) with trust boundaries.
+% Source facts: FACTS.md sections 2-6 (k8s/ssle.yaml, k3s/README.md, k3s/setup-cluster.sh).
+\begin{tikzpicture}[
+  font=\scriptsize,
+  svc/.style={draw, rounded corners=2pt, fill=blue!8, minimum width=24mm, minimum height=8mm, align=center},
+  int/.style={svc, fill=gray!15},
+  sec/.style={svc, fill=orange!18},
+  ext/.style={svc, fill=red!10},
+  flow/.style={-{Stealth[length=1.8mm]}, semithick},
+  mon/.style={-{Stealth[length=1.8mm]}, dashed, thick, gray!60!black},
+  bound/.style={draw, dashed, rounded corners=4pt, inner sep=6pt},
+  lbl/.style={font=\scriptsize\bfseries, anchor=south west, inner sep=1pt}
+]
+% ---------------- node k3s-master = dc1
+\node[svc] (sen1) at (1.4,3.0)  {sensor-dc1};
+\node[svc] (ing1) at (1.4,1.6)  {ingestion-dc1\\NodePort 30001};
+\node[svc] (ana1) at (4.6,1.6)  {analytics-dc1\\NodePort 30003};
+\node[int] (reg)  at (1.4,0.2)  {registry\\\textit{ClusterIP 5050}};
+\node[int] (sto)  at (4.6,0.2)  {storage (SQLite)\\\textit{ClusterIP 5002}};
+\node[sec] (ag1)  at (1.4,-1.2) {Wazuh agent\\+ k3s-block};
+\node[int] (pin)  at (4.6,-1.2) {Prometheus\\(in-cluster) 30090};
+\node[bound, fit=(sen1)(ana1)(ag1)(pin)] (n1) {};
+\node[lbl] at (n1.north west) {k3s-master = dc1 / rack1};
+
+% ---------------- node k3s-node1 = dc2
+\node[svc] (sen2) at (8.6,3.0)  {sensor-dc2};
+\node[svc] (ing2) at (8.6,1.6)  {ingestion-dc2\\NodePort 30001};
+\node[svc] (ana2) at (11.4,1.6) {analytics-dc2\\NodePort 30003};
+\node[sec] (ag2)  at (10.0,-1.2) {Wazuh agent\\+ k3s-block};
+\node[bound, fit=(sen2)(ana2)(ag2)] (n2) {};
+\node[lbl] at (n2.north west) {k3s-node1 = dc2 / rack1};
+
+\begin{scope}[on background layer]
+  \node[draw, thick, rounded corners=6pt, fill=blue!2, inner sep=13pt, fit=(n1)(n2)] (cl) {};
+\end{scope}
+\node[font=\scriptsize\bfseries, anchor=south] at ([yshift=6pt]cl.north)
+  {k3s cluster: pod network, region centro, country pt};
+
+% ---------------- outside the cluster (same Incus host, lab network)
+\node[sec] (wz)   at (0.2,-4.4)  {Wazuh manager\\rules 1002xx, AR};
+\node[int] (pc)   at (3.5,-4.4)  {central Prometheus\\(federation)};
+\node[ext] (mail) at (6.85,-4.4)  {mail server\\Postfix + SpamAssassin};
+\node[ext] (dns)  at (10.2,-4.4)  {DNS server (dnsmasq)\\\code{*.ssle.local}};
+\node[int] (dreg) at (13.5,-4.4) {image registry\\:5000};
+\node[ext] (cli)  at (15.2,1.6)  {clients /\\attackers};
+
+% ---------------- data flows
+\draw[flow] (sen1) -- (ing1);
+\draw[flow] (ing1) -- (sto) node[midway, above, sloped] {store};
+\draw[flow] (ana1) -- (sto) node[midway, right] {read};
+\draw[flow, gray] (ing1) -- (reg) node[midway, left] {lookup};
+\draw[flow] (sen2) -- (ing2);
+\draw[flow] (ing2.south) |- (sto.east) node[pos=0.75, below] {store (cross-dc)};
+\draw[flow] (cli) -- (ana2);
+\node[font=\tiny, align=center, below=1mm of cli] {via each location's\\NodePorts\\(\code{externalTrafficPolicy:}\\\code{Local})};
+
+% ---------------- monitoring and security
+\draw[mon] (pc.north) -- (pc.north |- pin.south) node[pos=0.35, right] {federate \code{location:*}};
+\draw[mon] (ag1.south) -- ([xshift=10mm]wz.north);
+\draw[mon] (ag2.south) -- ++(0,-1.05) -| ([xshift=-6mm]wz.north);
+\draw[mon] (dns.south) -- ++(0,-0.45) -| (wz.south);
+\draw[dashed, thick, gray!60!black] (mail.south) -- ++(0,-0.45);
+\draw[mon] (dreg.north) -- (dreg.north |- cl.south) node[pos=0.5, right] {images};
+\end{tikzpicture}

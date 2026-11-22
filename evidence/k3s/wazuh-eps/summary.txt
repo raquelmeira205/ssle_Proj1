@@ -1,0 +1,7 @@
+rate     written   alerts    lost%     alerts/s    p50 lat s   p95 lat s   warnings
+100/s    2884      2884      0.0       96          1.05        1.78        0       
+250/s    7499      7499      0.0       250         1.07        1.49        0       
+500/s    14999     14999     0.0       500         2.27        3.68        0       
+1000/s   29996     17777     40.7      593         11.19       12.13       13      
+2000/s   59992     16900     71.8      563         11.45       15.15       13      
+  lost% = lines written on the node that never became an alert; latency = log timestamp -> alert timestamp

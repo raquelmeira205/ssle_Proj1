@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Scalability evaluation (saved under evidence/scale/).
+# Scalability evaluation (saved under evidence/scale/, or evidence/k3s/scale/ with PLATFORM=k3s).
 #
 #   1. Horizontal scaling across locations: a second ingestion and analytics instance is
 #      deployed in ANOTHER data centre (dc2). The same closed-loop load is run against 1 instance

@@ -1,0 +1,70 @@
+Run started 2026-11-21T12:32:12-05:00 on kali, platform k3s
+
+################################################################################
+ THREAT: Service failure -> root-cause detection (fault management)
+################################################################################
+ Description   : A dependency (storage) fails; every service that uses it starts failing too, producing many unrelated-looking alarms.
+ Why relevant  : Storage is the single writer of all readings; when it fails ingestion and analytics both return errors and operators see alarms from several locations at once.
+ Exploitation  : Crash, resource exhaustion (e.g. after a DoS), or an attacker stopping the service.
+ Monitoring    : Prometheus: up, analytics_storage_errors_total, ingestion_readings_total{result=storage_error}, registry_instances. Wazuh: rule 100201 (HTTP 5xx) per agent with its hierarchical ID.
+ Action-resp.  : Correlation rule SSLERootCauseStorageDown names storage as the cause; the registry stops handing out the dead instance; recovery is checked when storage comes back.
+################################################################################
+
+== 0. Baseline
+  ....  Prometheus at http://10.255.255.139:30090
+    {instance=10.42.0.56:5003,job=ssle-analytics,k8s_node=k3s-master,pod=analytics-dc1-767846b666-8kgkk} 1
+    {instance=10.42.0.59:8000,job=ssle-sensor,k8s_node=k3s-master,pod=sensor-dc1-5674587469-ph28m} 1
+    {instance=10.42.0.60:5001,job=ssle-ingestion,k8s_node=k3s-master,pod=ingestion-dc1-679b5b468b-rn4xc} 1
+    {instance=10.42.0.53:5050,job=ssle-registry,k8s_node=k3s-master,pod=registry-5ddcf48556-wbwvp} 1
+    {instance=10.42.1.26:5003,job=ssle-analytics,k8s_node=k3s-node1,pod=analytics-dc2-7c64994f87-b9x9p} 1
+    {instance=10.42.1.23:8000,job=ssle-sensor,k8s_node=k3s-node1,pod=sensor-dc2-7977694bf7-qbcm8} 1
+    {instance=10.42.1.25:5001,job=ssle-ingestion,k8s_node=k3s-node1,pod=ingestion-dc2-b9f875d59-nhrmr} 1
+    {instance=10.42.0.64:5002,job=ssle-storage,k8s_node=k3s-master,pod=storage-55d8b74767-cd82z} 1
+  PASS  every SSLE target is up
+    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-21T17:31:48
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-21T17:31:48
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-21T17:28:40
+    SSLERootCauseStorageUnreachable  pending  job=-                root_cause=network-or-discovery since 2026-11-21T17:32:10
+  FAIL  a root-cause alert is already active
+
+== 1. Failure: stopping storage (k3s)
+  PASS  SSLERootCauseStorageDown firing 43.0 s after the failure
+    SSLEHighP95Latency               pending  job=ssle-ingestion   root_cause=-        since 2026-11-21T17:32:53
+    SSLEHighP95Latency               pending  job=ssle-analytics   root_cause=-        since 2026-11-21T17:32:53
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-21T17:28:40
+    SSLERootCauseStorageDown         firing   job=-                root_cause=storage  since 2026-11-21T17:32:55
+  PASS  network/discovery not blamed (correct diagnosis)
+  ....  SSLEInstanceDown for ssle-storage not firing yet
+storage errors seen by dependents (1 min):
+    {instance=10.42.0.56:5003,job=ssle-analytics,k8s_node=k3s-master,pod=analytics-dc1-767846b666-8kgkk} 3.2727272727272725
+    {instance=10.42.1.26:5003,job=ssle-analytics,k8s_node=k3s-node1,pod=analytics-dc2-7c64994f87-b9x9p} 0
+    {instance=10.42.1.25:5001,job=ssle-ingestion,k8s_node=k3s-node1,pod=ingestion-dc2-b9f875d59-nhrmr,result=storage_error} 2.1818181818181817
+    {instance=10.42.0.60:5001,job=ssle-ingestion,k8s_node=k3s-master,pod=ingestion-dc1-679b5b468b-rn4xc,result=storage_error} 2.1818181818181817
+registry instances of storage:
+    {country=pt,dc=dc1,instance=10.42.0.53:5050,job=ssle-registry,k8s_node=k3s-master,node=k3s-master,pod=registry-5ddcf48556-wbwvp,rack=rack1,region=centro,service=storage-service} 1
+  PASS  registry removed the dead storage instance (HTTP 404) 53.5 s after the failure
+
+== 1a. SIEM view: HTTP 5xx events per service/location (Wazuh rule 100201)
+  PASS  Wazuh recorded 3 HTTP 5xx events
+       3 x  analytics-service-analytics-dc1-767846b666-8kgkk.k3s-master.rack1.dc1.centro.pt /stats
+
+== 2. Recovery: starting storage
+    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-21T17:32:53
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-21T17:32:53
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-21T17:28:40
+    SSLERootCauseStorageUnreachable  pending  job=-                root_cause=network-or-discovery since 2026-11-21T17:33:15
+  PASS  root-cause alert cleared 6.9 s after storage restarted
+  PASS  storage-service registered again
+
+== Post-mortem summary
+  failure injected        : storage stopped (k3s) at 12:32:13
+  root cause identified   : storage (SSLERootCauseStorageDown)
+  symptoms correlated     : 4 Prometheus alerts and 3 Wazuh 5xx events -> 1 root cause
+  limitations             : rules are written per dependency (storage, ingestion); a full dependency graph
+                            (or Alertmanager inhibition) would generalise it; the 1 min increase() window
+                            delays clearing after recovery.
+
+========================================
+Result: 7 passed, 1 failed
+Evidence saved in evidence/k3s/rootcause/
+========================================

@@ -1,0 +1,54 @@
+% Figure 3: attack-defense tree (Kordy et al. notation: attacks = red ellipses, defences = green
+% boxes on dotted edges; grey = no defence in our system). Every defence is an element of the repo
+% (FACTS.md sections 4-7); every "no defence" leaf is a documented limitation (FACTS.md section 10).
+\begin{forest}
+  for tree={font=\scriptsize, align=center, grow'=east, l sep=7mm, s sep=1.5mm, inner sep=2pt,
+            child anchor=west, parent anchor=east, anchor=west},
+  att/.style={ellipse, draw=red!70!black, fill=red!8},
+  dfn/.style={rectangle, draw=green!50!black, fill=green!10, edge={dotted, thick}},
+  gap/.style={rectangle, draw=gray, fill=gray!15, edge={dotted, thick}, font=\scriptsize\itshape},
+  [{Disrupt or subvert\\the temperature service}, att
+    [{Deny service\\(DoS)}, att
+      [{HTTP flood from\\few sources}, att
+        [{100210 +\\k3s-block 60\,s}, dfn]
+        [{Prometheus rate/\\latency alerts}, dfn]
+      ]
+      [{Distributed flood\\below 15 req/10\,s\\per source}, att
+        [{no automatic\\response}, gap]
+      ]
+      [{Flood from a\\compromised pod}, att
+        [{exempted by\\100209}, gap]
+      ]
+    ]
+    [{Redirect clients\\(DNS hijack)}, att
+      [{Tamper with\\zone file}, att
+        [{FIM 550$\to$100230\\+ restore-dns}, dfn]
+      ]
+      [{Cache poisoning /\\rogue DNS}, att
+        [{not detected\\(DNSSEC: future)}, gap]
+      ]
+    ]
+    [{Poison service\\discovery}, att
+      [{Register fake\\instance}, att
+        [{registry only\\ClusterIP}, dfn]
+        [{no authentication}, gap]
+      ]
+    ]
+    [{Junk email}, att
+      [{Spam content}, att
+        [{SpamAssassin $\to$\\hold queue}, dfn]
+      ]
+      [{Mail flood\\one source}, att
+        [{100222 +\\firewall-drop}, dfn]
+      ]
+      [{Open relay\\abuse}, att
+        [{relay\\restrictions}, dfn]
+      ]
+    ]
+    [{Take over\\the host}, att
+      [{Escape the\\privileged k3s\\container}, att
+        [{no control}, gap]
+      ]
+    ]
+  ]
+\end{forest}

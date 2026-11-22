@@ -1,0 +1,49 @@
+% Figure: where every part runs, from the one real machine down to the pods.
+% Source facts: FACTS.md sections 1, 3, 4 (k3s/setup-cluster.sh, k8s/ssle.yaml, README.md).
+\begin{tikzpicture}[
+  font=\small,
+  title/.style={font=\small\bfseries, anchor=north west, inner sep=0pt},
+  sub/.style={font=\footnotesize, anchor=north west, inner sep=0pt, text=black!65},
+  item/.style={font=\footnotesize, anchor=north west, inner sep=0pt},
+]
+% one real machine
+\draw[rounded corners=10pt, fill=gray!8, draw=gray!60] (0,0) rectangle (15.6,10.2);
+\node[title] at (0.4,9.85) {One Kali VM: the only real machine};
+\node[sub]   at (0.4,9.35) {every box inside is an Incus container};
+
+% k3s cluster
+\draw[rounded corners=8pt, fill=violet!7, draw=violet!55] (0.4,2.3) rectangle (9.9,8.8);
+\node[title, text=violet!70!black] at (0.75,8.5) {k3s cluster (Kubernetes)};
+\node[sub] at (0.75,8.0) {2 nodes = 2 simulated data centres};
+
+% node dc1
+\draw[rounded corners=6pt, fill=teal!8, draw=teal!60] (0.75,2.65) rectangle (5.05,7.55);
+\node[title, text=teal!60!black] at (1.05,7.3) {k3s-master};
+\node[sub] at (1.05,6.8) {node label: dc1, rack1};
+\foreach \t [count=\i] in {registry, storage (SQLite), ingestion-dc1, analytics-dc1, sensor-dc1, Prometheus}
+  \node[item] at (1.05,6.75-0.55*\i) {pod: \t};
+
+% node dc2
+\draw[rounded corners=6pt, fill=teal!8, draw=teal!60] (5.3,2.65) rectangle (9.55,7.55);
+\node[title, text=teal!60!black] at (5.6,7.3) {k3s-node1};
+\node[sub] at (5.6,6.8) {node label: dc2, rack1};
+\foreach \t [count=\i] in {ingestion-dc2, analytics-dc2, sensor-dc2}
+  \node[item] at (5.6,6.75-0.55*\i) {pod: \t};
+
+% outside the cluster
+\draw[rounded corners=8pt, fill=orange!8, draw=orange!60] (10.25,2.3) rectangle (15.2,8.8);
+\node[title, text=orange!60!black] at (10.6,8.5) {Outside the cluster};
+\node[sub] at (10.6,8.0) {shared by both sites};
+\foreach \t [count=\i] in {Wazuh manager (SIEM), central Prometheus, mail server, DNS server, docker: builds images}
+  \node[item] at (10.6,7.6-0.65*\i) {\t};
+\node[item] at (10.6,3.95) {\phantom{docker: }+ private registry};
+
+% images are pulled by the nodes
+\draw[-{Stealth[length=2mm]}, thick, orange!70!black] (12.0,3.45) |- (9.55,3.0)
+  node[pos=0.75, above, font=\footnotesize] {images};
+
+% reading key
+\node[item] at (0.4,1.85) {\textbf{Physical level} = the node (which machine it runs on)};
+\node[item] at (0.4,1.3)  {\textbf{Logical level} = the pod (which program instance it is)};
+\node[item] at (0.4,0.7)  {ID: \texttt{ingestion-service-ingestion-dc2-<hash>.k3s-node1.rack1.dc2.centro.pt}};
+\end{tikzpicture}

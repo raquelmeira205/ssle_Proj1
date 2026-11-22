@@ -1,0 +1,7 @@
+=== during (30.1s) ===
+  Total requests : 27 (OK: 27, Failed/Blocked: 0)
+  Throughput     : 0.90 ok req/s (0.90 total req/s)
+  Latency p50    : 13.47 ms
+  Latency p95    : 226.20 ms
+RESULT ok=27 failed=0 p50=13 p95=226
+

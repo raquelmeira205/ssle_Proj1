@@ -1,0 +1,9 @@
+  legitimate client                     success   p50 (ms)   p95 (ms)
+  1-baseline                                 0%       2002       2003
+  2-unmitigated                             25%       2001       2002
+  3-mitigated                               38%       2002       2004
+  detection (attack start -> first 100210 alert): 17.4 s
+  time to block attacker1 (10.255.255.144): 18.0 s
+  time to block attacker2 (10.255.255.202): 18.2 s
+  false positives (legit client flagged/blocked): no
+  limitation: per-source threshold; a flood spread over many IPs below 15 req/10 s each is not detected by 100210

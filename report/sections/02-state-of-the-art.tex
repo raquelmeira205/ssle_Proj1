@@ -1,0 +1,79 @@
+\section{Relevant State of the Art}
+\label{sec:sota}
+
+\paragraph{Naming and discovery at scale.}
+The Domain Name System is the reference design for naming at Internet scale: a hierarchical name
+space whose levels are separated by dots, with the data distributed so that each zone is managed by
+whoever is responsible for it~\cite{rfc1034}. Our instance IDs reuse that idea (most specific label
+first, delegation by level), but encode the \emph{physical and logical location} of an element
+rather than an organisational domain. Container orchestrators such as Kubernetes provide their own
+service discovery through Services and cluster DNS; in our design it does not carry our location
+hierarchy to the caller, which is why we kept a location-aware registry next to the Kubernetes
+Services.
+
+\paragraph{Large-scale monitoring.}
+Prometheus pulls metrics from every target and evaluates alert and recording rules locally. To
+scale to many data centres its documentation describes \emph{hierarchical federation}: one
+Prometheus per site scrapes local targets and a global one pulls only aggregated series from
+them~\cite{prometheus_federation}. We apply exactly this pattern, using recording rules that join
+every metric with the location labels of the instance, so that the traffic between sites grows with
+the number of locations rather than the number of instances.
+
+\paragraph{SIEM.}
+A SIEM combines log management, security information and event management, normalisation and
+correlation of events. González-Granadillo et al.\ survey the main SIEM products and note their
+convergence with big-data analytics~\cite{gonzalez2021siem}. Wazuh, the open-source SIEM used in
+the practical classes, provides agents that forward logs and file-integrity events, a rule engine
+with frequency-based correlation, and \emph{active responses}: scripts that run on an agent when a
+rule fires, for example \code{firewall-drop}, which blocks a source with iptables for a set
+time~\cite{wazuh_ar}.
+
+\paragraph{Denial of service.}
+Mirkovic and Reiher classify DDoS attacks and defences by, among others, the deployment location
+of the defence (source, intermediate network, victim) and the detection strategy (pattern or
+anomaly based)~\cite{mirkovic2004taxonomy}. Network-level defences include ingress filtering of
+spoofed sources (BCP~38)~\cite{rfc2827} and remote-triggered blackholing of an attacked prefix
+through a BGP community~\cite{rfc7999}. The Mirai botnet showed how hundreds of thousands of weak
+IoT devices can generate floods that overwhelm well-defended targets~\cite{antonakakis2017mirai}.
+Our defence is a victim-side, per-source rate threshold; it is effective against few sources and,
+as we discuss, not against a botnet.
+
+\paragraph{Junk email.}
+Content filters such as SpamAssassin combine many rules into a score; statistical (Bayesian)
+filtering popularised by Graham~\cite{graham2002spam} learns from the user's own mail. Filters are
+tested with GTUBE, a fixed string whose default score flags a message as spam on any
+SpamAssassin installation~\cite{spamassassin_gtube}. Volume-based controls (rate limits per sender) and the refusal to
+relay for unknown clients complement content filtering.
+
+\paragraph{DNS hijacking.}
+DNSSEC adds origin authentication and integrity to DNS data~\cite{rfc4033}, but does not stop an
+attacker who can modify the authoritative zone itself. Such tampering happened in real campaigns:
+in 2019 CISA ordered US federal agencies to audit their DNS records and monitor certificate
+transparency logs after a wave of DNS infrastructure hijacking~\cite{cisa2019ed1901}. Our approach
+targets that case (integrity of the zone at the source) with real-time file-integrity monitoring and
+automatic restoration.
+
+\paragraph{Risk analysis and fault management.}
+Attack trees model the ways to reach an attacker goal as an AND/OR tree~\cite{schneier1999attacktrees};
+attack--defense trees add the defender's countermeasures as nodes~\cite{kordy2010adtrees}. FCAPS
+(fault, configuration, accounting, performance, security), refined by ITU-T in
+M.3400~\cite{itu2000m3400}, frames fault management as detection, diagnosis, correlation and
+resolution, but treats security as a separate functional area.
+
+\begin{table}[ht]
+\centering\small
+\caption{Our choices compared with common alternatives.}
+\label{tab:choices}
+\begin{tabularx}{\textwidth}{@{}lYY@{}}
+\toprule
+Concern & Our choice & Common alternatives and why not here \\
+\midrule
+Naming & hierarchical location ID + own registry & Kubernetes DNS only (no location); Consul (extra component) \\
+Monitoring & Prometheus per site + federation of \code{location:*} & central scrape of everything (WAN traffic grows with instances); remote-write to a TSDB \\
+SIEM & Wazuh manager + agents per node & commercial SIEM; ELK with custom correlation \\
+DoS & per-source threshold + host firewall at the victim & BCP~38, RTBH, scrubbing centres (need ISP/BGP control) \\
+Spam & SpamAssassin score + quarantine + rate limit & Bayesian/RBL tuning (needs real mail corpus) \\
+DNS hijack & FIM on zone file + automatic restore & DNSSEC (does not cover zone tampering at the source) \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -1,0 +1,241 @@
+\section{Approach to the Three Threats}
+\label{sec:threats}
+
+We chose three threats from the syllabus: \emph{massive denial-of-service disruptions},
+\emph{junk email} and \emph{route and signal hijacking} (as DNS hijacking).
+Table~\ref{tab:threats} summarises detection, response and the measured result on the main (k3s)
+platform. Each proof of concept is an automated script that prints a threat card, runs the attack
+from separate containers, checks detection, response, false positives and recovery, and stores the
+raw evidence (alert JSON, firewall rules, logs, Prometheus queries). Every test passed on both
+platforms: DoS 17/17 checks, junk email 18/18, DNS 10/10.
+
+\begin{table}[ht]
+\centering\small
+\caption{Threats, detection, action-response and result on k3s.}
+\label{tab:threats}
+\begin{tabularx}{\textwidth}{@{}l Y Y Y@{}}
+\toprule
+Threat & Detection & Action-response & Result (k3s) \\
+\midrule
+HTTP flood (DoS) & Wazuh \rid{100210}: 15 requests in 10~s from one source; Prometheus rate, p95, in-flight alerts & \code{k3s-block}: drop the source in \code{raw/PREROUTING} on the node, 60~s & alert 2.2~s, blocked 2.8/2.9~s after start; legit client 91\%$\to$100\% \\
+Junk email & \rid{100220} (spam), \rid{100223} (quarantined), \rid{100222}: 10 mails in 30~s from one source & spam held by Postfix; flood source \code{firewall-drop} 60~s; relay refused & spam not delivered; flood blocked 2.8~s; no false positive \\
+DNS hijacking & FIM real time: \rid{550}$\to$\rid{100230} on the zone file & \code{restore-dns}: restore golden zone, restart dnsmasq & alert 0.1~s, restored 0.2~s; 0~s exposure seen \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ------------------------------------------------------------------------------------------
+\subsection{Massive denial of service (HTTP flood)}
+
+\paragraph{Description.}
+An attacker sends far more requests than a service can handle, so legitimate requests are delayed
+or dropped. At large scale the sources are many (botnets such as Mirai~\cite{antonakakis2017mirai});
+our PoC uses a few sources, which is the case our defence targets.
+
+\paragraph{Why it is relevant here.}
+Analytics is the most exposed and most expensive endpoint: one \code{/stats?limit=1000} call makes
+analytics query the registry and then read 1000 rows from storage. A flood on analytics is
+therefore amplified onto storage, the single writer of the whole platform, and degrades ingestion
+in every location.
+
+\paragraph{How it can be exploited (PoC).}
+Two attacker containers each run 20 concurrent workers against the dc1 analytics NodePort for
+25~s, while a legitimate client sends about one request per second, below the detection threshold.
+The test has four phases: (1) baseline, legitimate client alone; (2) unmitigated attack, with the
+node's Wazuh agent stopped; (3) the same attack with detection and response; (4) recovery after the
+block expires.
+
+\paragraph{Monitoring and mitigation metrics.}
+Every request produces a JSON access-log line that the node agent forwards (rule \rid{100200}).
+Rule \rid{100210} fires when 15 such events from the same \code{srcip} arrive within 10~s.
+Sources that are the platform's own services are excluded twice: Incus service addresses through
+a CDB list, and the Kubernetes pod network through rule \rid{100209}, a level-0 child of
+\rid{100200} that ends pod-to-pod requests before \rid{100210} counts them. On the Prometheus side,
+\code{SSLEHighRequestRate}, \code{SSLEHighP95Latency} and \code{SSLEHighConcurrentRequests} watch
+rate, latency and backlog per job, and \code{SSLERootCauseRequestFlood} combines them.
+
+\paragraph{Action-response.}
+Rule \rid{100210} triggers an active response on the agent that saw the flood, for 60~s. The stock
+\code{firewall-drop} adds a DROP rule to the \code{INPUT} chain, which works for the Incus
+containers but not for Kubernetes: NodePort traffic is translated by \code{kube-proxy} and then
+\emph{forwarded} to the pod, so it never crosses \code{INPUT}. We wrote \code{k3s-block}, which
+implements the Wazuh active-response protocol and inserts the DROP into the \code{raw} table's
+\code{PREROUTING} chain, before \code{kube-proxy}. Because of \code{externalTrafficPolicy: Local},
+the node that sees the flood is the node the attacker uses, so blocking locally is enough.
+
+\paragraph{Post-mortem.}
+Table~\ref{tab:ddos} shows the legitimate client in each phase. On k3s the alert came 2.2~s after
+the attack started and both attackers were blocked within 2.9~s; the legitimate client was never
+flagged or blocked, both attackers were unblocked after 60~s, and Prometheus raised
+\code{SSLEHighRequestRate} during the unmitigated phase.
+
+\begin{table}[ht]
+\centering\small
+\caption{DoS test: legitimate client success rate and latency (p50 / p95, ms).}
+\label{tab:ddos}
+\begin{tabular}{@{}l cc cc@{}}
+\toprule
+ & \multicolumn{2}{c}{k3s (main)} & \multicolumn{2}{c}{Incus (baseline)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Phase & success & p50 / p95 & success & p50 / p95 \\
+\midrule
+1 baseline    & 100\% & 13 / 32     & 100\% & 11 / 14 \\
+2 unmitigated & 91\%  & 900 / 1890  & 0\%   & 2003 / 2003 \\
+3 mitigated   & 100\% & 12 / 22     & 77\%  & 10 / 2002 \\
+\midrule
+first \rid{100210} alert & \multicolumn{2}{c}{2.2~s} & \multicolumn{2}{c}{12.0~s} \\
+attackers blocked after  & \multicolumn{2}{c}{2.8 / 2.9~s} & \multicolumn{2}{c}{13.8 / 12.4~s} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+What failed along the way is as instructive as the final result:
+\begin{itemize}
+  \item \textbf{Self-inflicted outage (Incus).} In the first automated run, storage and the registry
+        saw analytics' fan-out calls as a flood and blocked analytics itself, so the defence took
+        the service down. Internal sources are now excluded. The trade-off: a compromised internal
+        service flooding another one is not blocked.
+  \item \textbf{The same outage again on k3s.} Pod addresses change on every restart, so they
+        cannot be listed. A \code{10.42.} prefix entry in the CDB list never matched, and a negated
+        CIDR condition in the rule behaved as a positive match, so the analytics pod was blocked
+        again. Rule \rid{100209} fixed it and keeps internal HTTP~5xx errors visible for root-cause
+        correlation.
+  \item \textbf{New pods were invisible to the SIEM.} Every new pod writes a new log file; the agent
+        looked for new files only every 64~s, so the first minute of a new pod's traffic was never
+        analysed. It now scans every 5~s.
+  \item \textbf{Probes amplified overload.} With a 1~s liveness timeout, the kubelet killed pods
+        that were slow but healthy (exit 137), which during a flood would restart the attacked pod.
+        Liveness now tolerates about 60~s of silence; readiness still removes a struggling pod from
+        the Service.
+  \item \textbf{Symptoms differ by platform.} On Incus the flood made requests \emph{fail}; on k3s
+        the pod limits kept the service answering, slowly (p50 900~ms). The check of the test was
+        widened to accept a lower latency as evidence of mitigation.
+  \item \textbf{An overloaded service delays its own detection.} Detection took 12.0~s on Incus and
+        2.2~s on k3s, but the SIEM pipeline was fast on both: the first \rid{100210} alert came
+        0.3~s (Incus) and 1.1~s (k3s) after the fifteenth logged request. The difference is that a
+        request is logged when its response is sent. The saturated Incus analytics answered in
+        about 2.3~s, so the 15 log lines the rule needs only existed about 9~s into the attack; the
+        k3s pod answered in about 0.6~s.
+\end{itemize}
+
+Table~\ref{tab:ddos} shows single runs. Repeating the k3s test five times
+(Section~\ref{sec:repeat}) gave the same picture in three runs, but in two the analytics pod was so
+overloaded that detection took 17.4~s or did not happen.
+
+\paragraph{Distributed flood (false negative).}
+A per-source threshold cannot see an attack spread over many sources. We tested it with 40
+source addresses (secondary addresses on the two attacker containers), each sending one request
+per second, below the 1.5 per second that \rid{100210} needs, for 40~s against the same
+endpoint; the generator skips missed slots instead of sending them in bursts. The service received
+about 40~req/s in total (as measured by Prometheus) and Wazuh raised \emph{no} \rid{100210} alert
+and added no block, while Prometheus fired \code{SSLEHighRequestRate} and
+\code{SSLERootCauseRequestFlood} on analytics and storage. At this rate the legitimate client was
+not seriously affected (p50 15~ms before, 13~ms during; p95 46 to 226~ms), but the attack was only
+visible to Prometheus, which has no automatic response. A botnet would scale the same pattern.
+
+% ------------------------------------------------------------------------------------------
+\subsection{Junk email}
+
+\paragraph{Description.}
+Unsolicited bulk mail: unwanted content (advertising, phishing) and high-volume sending that
+consumes the mail server's resources, plus abuse of the server as an open relay to send spam to
+third parties.
+
+\paragraph{Why it is relevant here.}
+The mail server is the operators' channel (alerts, notifications) and is reachable from the lab
+network. A flood fills its queues; an open relay would make our platform a spam source and get it
+blacklisted; phishing reaching operators is the usual first step of an intrusion.
+
+\paragraph{How it can be exploited (PoC).}
+From an attacker container the test (1) sends a legitimate message from the legitimate client,
+(2) sends a message containing the GTUBE string~\cite{spamassassin_gtube}, (3) tries to relay a
+message to an outside domain, (4) opens 12 SMTP sessions in parallel, and (5) checks recovery after
+the block.
+
+\paragraph{Monitoring and mitigation metrics.}
+Postfix passes every message through SpamAssassin (threshold 5.0; Bayes is enabled in the
+configuration but has never been trained, so scores come from the rules alone). Rule
+\rid{100220} matches \emph{spamd: identified spam}; \code{header\_checks} moves any message with
+\code{X-Spam-Flag: YES} to the hold queue, and Postfix's log line becomes rule \rid{100223}. Rule
+\rid{100221} marks each accepted message with its client address, and \rid{100222} fires on 10 of
+them from the same source within 30~s. Relaying is refused for any client outside
+\code{mynetworks} (localhost only).
+
+\paragraph{Action-response.}
+Two layers: the \emph{mail server} itself quarantines spam (hold queue, released by an operator)
+and refuses relaying; \emph{Wazuh} responds to a flood (\rid{100222}) with \code{firewall-drop} of the
+source on the mail container for 60~s. The spam alerts \rid{100220}/\rid{100223} are alert-only.
+
+\paragraph{Post-mortem.}
+On both platforms the legitimate message was delivered and scored clean; the GTUBE message was
+flagged, quarantined and not delivered; the relay attempt was refused (\emph{Relay access
+denied}). For the flood, the first \rid{100222} alert came 2.2~s after it started and the source was
+blocked 2.8~s after it started on the k3s run (1.7~s and 2.0~s on the Incus run). The legitimate
+sender was never blocked and could send during the block, and the attacker could connect again after
+60~s. How many of the 12 flood messages got through is a race between the parallel sessions and the
+block: 2 completed in the Incus run and all 12 in the k3s run. With a threshold of 10 messages, up
+to about 10 messages from a new source are accepted before the block.
+
+GTUBE only proves that the pipeline works. To measure detection we passed 500 spam and 500
+legitimate (\emph{easy ham}) messages from the SpamAssassin public corpus (2003) through the
+production \code{spamd} (Table~\ref{tab:corpus}); Bayes auto-learning left no database behind. At the
+configured threshold 70\% of the spam was caught and 10\% of the legitimate mail would have been
+quarantined; lowering the threshold to 3.0 catches more spam but flags almost half of the
+legitimate mail. The corpus is old, so its spam may miss current rules and its legitimate mail may
+trip date-based ones; we did not analyse which rules caused the false positives. Without Bayes
+training and network tests, content filtering alone is weak, which is why the quarantine is
+reviewed by an operator rather than deleting mail. Other limitations: a sender that rotates
+addresses or stays under 10 messages per 30~s is not blocked.
+
+\begin{table}[ht]
+\centering\small
+\caption{SpamAssassin on 500 spam + 500 legitimate messages (public corpus, untrained Bayes).}
+\label{tab:corpus}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Threshold & spam detected & legitimate flagged (false positive) \\
+\midrule
+5.0 (configured) & 349/500 (69.8\%) & 52/500 (10.4\%) \\
+3.0 & 438/500 (87.6\%) & 226/500 (45.2\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------------------------------
+\subsection{Route and signal hijacking: DNS hijacking}
+
+\paragraph{Description.}
+The attacker changes the answer to a name lookup so that clients reach a machine of the attacker's
+choice instead of the real service. We consider tampering with the authoritative zone, the case
+behind the 2019 DNS infrastructure hijacking campaigns~\cite{cisa2019ed1901}.
+
+\paragraph{Why it is relevant here.}
+Clients reach the platform by name: \code{ingestion.ssle.local} and \code{analytics.ssle.local}
+point at the node that publishes the NodePorts. Redirecting \code{ingestion} sends every sensor
+reading to the attacker (data theft and silent data loss) and lets it return fake answers, while
+every service stays up and no fault alarm fires.
+
+\paragraph{How it can be exploited (PoC).}
+The test overwrites the zone file \code{/etc/dnsmasq-zones/ssle.hosts} so that
+\code{ingestion.ssle.local} points to an attacker container, while a client resolves the name every
+0.25~s. A control phase repeats the attack with the DNS host's Wazuh agent stopped.
+
+\paragraph{Monitoring and mitigation metrics.}
+The DNS host's agent monitors \code{/etc/dnsmasq-zones} with real-time file-integrity monitoring
+(all checks). A change raises Wazuh rule \rid{550} (integrity checksum changed), and our rule
+\rid{100230} (level 12) matches it for the zone file. The client's resolution timeline measures the
+exposure window.
+
+\paragraph{Action-response.}
+\code{restore-dns} runs on the DNS host: it copies the golden zone over the live one and restarts
+dnsmasq, but only if they differ, so its own restore does not trigger it again.
+
+\paragraph{Post-mortem.}
+\rid{100230} fired 0.1~s after the hijack and the zone was restored 0.2~s after it on the k3s run
+(0.3~s on Incus). The client never received the attacker's address (exposure 0.00~s at a 0.25~s
+sampling interval). Without Wazuh the hijack was still in place after 15~s. Limitations: only
+tampering with the zone \emph{file} is detected, not cache poisoning, a rogue DNS or DHCP server or
+on-path spoofing, for which DNSSEC~\cite{rfc4033} would be needed; clients may keep a bad answer
+for its TTL; root on the DNS host could change the golden copy or stop the agent. Inside the cluster
+the equivalent attack would target the CoreDNS configuration, which file monitoring does not see;
+it would need Kubernetes audit logs in Wazuh.

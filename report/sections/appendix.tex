@@ -1,0 +1,91 @@
+\section{Reproducing the results}
+\label{app:repro}
+
+All commands run on the Incus host from the repository root; \code{commands.md} documents every
+option. Evidence is written to \code{evidence/k3s/<test>/} for the main platform and
+\code{evidence/<test>/} for the Incus baseline.
+
+\paragraph{Main platform (k3s).}
+\begin{verbatim}
+./k3s/setup-cluster.sh && ./apply-configs.sh pin && ./k3s/deploy.sh
+./k3s/install-wazuh-node-agents.sh && PLATFORM=k3s ./apply-configs.sh
+./test-k3s.sh                          # architecture, 40 checks
+PLATFORM=k3s ./test-ddos.sh            # threat 1
+PLATFORM=k3s ./test-spam.sh            # threat 2
+PLATFORM=k3s ./test-dns.sh --control   # threat 3
+PLATFORM=k3s ./test-rootcause.sh       # correlation / root cause
+PLATFORM=k3s ./test-scale.sh           # scalability
+\end{verbatim}
+
+\paragraph{Baseline (Incus).}
+\begin{verbatim}
+./deploy-incus.sh && ./install-wazuh-agents.sh && ./apply-configs.sh
+./test-incus.sh
+./test-ddos.sh ; ./test-spam.sh ; ./test-dns.sh --control
+./test-rootcause.sh ; ./test-scale.sh
+\end{verbatim}
+
+\paragraph{Where things are.}\mbox{}\\[2pt]
+\noindent
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\code{common.py} & naming, registration, discovery, metrics, access log \\
+\code{registry/}, \code{ingestion/}, \dots & the five services (one folder each) \\
+\code{k8s/ssle.yaml}, \code{k8s/monitoring.yaml} & Kubernetes manifests, in-cluster Prometheus \\
+\code{prometheus/ssle\_rules.yml} & load, root-cause and per-location rules \\
+\code{wazuh/ssle-rules.xml} & Wazuh rules 100200--100230 \\
+\code{wazuh/active-response/} & \code{k3s-block.py}, \code{restore-dns.sh} \\
+\code{mail/}, \code{dns/} & Postfix/SpamAssassin hardening, DNS zone and golden copy \\
+\code{evidence/} & raw evidence and \code{summary.txt} for every test \\
+\end{tabularx}
+
+\section{Evidence excerpts}
+\label{app:evidence}
+
+Short excerpts of the raw evidence of the k3s runs (\code{evidence/k3s/}). Lab addresses are
+replaced by placeholders in angle brackets; nothing else is changed.
+
+\paragraph{DoS: Wazuh alert and the block on the node} (\code{ddos/run.log},
+\code{ddos/3-iptables-during-block.txt}). The agent name gives the node and location; the
+\code{raw PREROUTING} rules are the ones added by \code{k3s-block}.
+{\footnotesize
+\begin{verbatim}
+2026-11-19T02:58:40.144+0000  rule 100210 (level 10, fired 12 times)
+    source : srcip=<attacker1>
+    where  : agent=k3s-node-01.k3s-master.rack1.dc1.centro.pt (<k3s-master>)
+    what   : SSLE DDoS detected: high request rate from <attacker1> against
+             analytics-service (/stats?limit=1000)
+# raw PREROUTING
+ pkts bytes target     prot opt in     out     source               destination
+   57  3248 DROP       all  --  *      *       <attacker2>          0.0.0.0/0
+   78  4432 DROP       all  --  *      *       <attacker1>          0.0.0.0/0
+\end{verbatim}}
+
+\paragraph{DNS hijacking: Wazuh alert} (\code{dns/run.log}).
+{\footnotesize
+\begin{verbatim}
+2026-11-19T02:53:44.734+0000  rule 100230 (level 12, fired 1 times)
+    where  : agent=dns-service-01.<host>.rack1.dc1.centro.pt (<dns-server>)
+    what   : SSLE DNS Hijacking detected: /etc/dnsmasq-zones/ssle.hosts was
+             tampered with - restoring clean zone
+\end{verbatim}}
+
+\paragraph{Root cause: Prometheus alerts after storage was stopped} (\code{rootcause/run.log}).
+Symptoms (latency, storage errors) and the single root-cause alert.
+{\footnotesize
+\begin{verbatim}
+SSLEHighP95Latency          pending  job=ssle-ingestion  root_cause=-        since 02:54:43
+SSLEHighP95Latency          pending  job=ssle-analytics  root_cause=-        since 02:54:43
+SSLEStorageErrorsSymptom    firing   job=-               root_cause=-        since 02:54:40
+SSLERootCauseStorageDown    firing   job=-               root_cause=storage  since 02:54:45
+\end{verbatim}}
+
+\paragraph{Registry: one entry per pod, with location in the ID} (\code{cluster/2-registry-check.txt}).
+{\footnotesize
+\begin{verbatim}
+ingestion-service: 2 instances, dcs=dc1,dc2
+  ingestion-service-ingestion-dc2-b9f875d59-nhrmr.k3s-node1.rack1.dc2.centro.pt  -> <pod-ip>:5001
+  ingestion-service-ingestion-dc1-679b5b468b-kkxzt.k3s-master.rack1.dc1.centro.pt -> <pod-ip>:5001
+analytics-service: 2 instances, dcs=dc1,dc2
+  analytics-service-analytics-dc2-7c64994f87-b9x9p.k3s-node1.rack1.dc2.centro.pt  -> <pod-ip>:5003
+  analytics-service-analytics-dc1-767846b666-8kgkk.k3s-master.rack1.dc1.centro.pt -> <pod-ip>:5003
+\end{verbatim}}

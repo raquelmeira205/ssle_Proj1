@@ -1,0 +1,151 @@
+\section{Service Architecture Used}
+\label{sec:arch}
+
+\subsection{Services and data flows}
+
+The application is a temperature-monitoring pipeline written in Python (Flask). Each service is a
+separate process, image and Kubernetes Deployment (Table~\ref{tab:services}). A sensor posts a
+reading every 5~s to an ingestion instance, which validates it and forwards it to storage; the
+analytics service reads through the storage API, never the database file. Every service finds its
+dependencies through the registry at each call, so a replaced instance is used as soon as it
+registers.
+
+\begin{table}[ht]
+\centering\small
+\caption{Services, ports and their own Prometheus metrics (besides the common ones).}
+\label{tab:services}
+\begin{tabularx}{\textwidth}{@{}l l Y Y@{}}
+\toprule
+Service & Port & Role & Own metrics \\
+\midrule
+registry  & 5050 & registration with heartbeat, discovery by location, round-robin, health checks, \code{/tree} & \metric{registry\_instances} (per service and location), registrations, removals, failed health checks \\
+ingestion & 5001 & validate readings, forward to storage (502 if storage fails) & \metric{ingestion\_readings\_total\{result\}} (accepted, invalid, storage\_error) \\
+storage   & 5002 & SQLite persistence and read API (single writer) & stored, rejected, \metric{storage\_rows} \\
+analytics & 5003 & average/min/max over stored readings & \metric{analytics\_storage\_errors\_total} \\
+sensor    & 8000 & posts a reading every 5~s (metrics only) & \metric{sensor\_readings\_sent\_total\{result\}} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All HTTP services share one instrumentation module that exports
+\metric{http\_requests\_total}, a latency histogram, the number of in-flight requests, and
+\metric{service\_info}, a constant series that carries the instance's ID and location. Labels never
+contain client-controlled values (for example the sensor's device ID), so a client cannot inflate
+the number of time series. The same module writes one JSON access-log line per request
+(\code{ts}, \code{service}, \code{id}, \code{srcip}, method, path, status, latency), which is what the
+Wazuh agents read.
+
+\subsection{Deployment: physical and logical location}
+
+Figure~\ref{fig:layers} shows where every part runs, from the one real machine down to the
+programs; Figure~\ref{fig:arch} adds the data flows and trust boundaries.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\textwidth}{!}{\input{figures/layers}}
+\caption{Where every part runs. The only physical machine is one VM; every box inside it is an
+Incus container. Two of them form the k3s cluster, and each node is labelled as a data centre. The
+node is the physical level of an ID and the pod the logical level.}
+\label{fig:layers}
+\end{figure}
+
+Two k3s nodes run as privileged Incus containers on
+one VM; each node \emph{is} a data centre: \code{k3s-master} is \code{dc1} and \code{k3s-node1} is
+\code{dc2}, both in \code{rack1}, region \code{centro}, country \code{pt} (node labels
+\code{ssle.dc}, \code{ssle.rack}). Ingestion, analytics and the sensor run once per location, as one
+Deployment each pinned with a \code{nodeSelector}; the registry, storage (one replica, persistent
+volume) and the in-cluster Prometheus run in dc1. Images are built in a separate container and
+pulled from a private registry, tagged with the git commit. The Wazuh manager, the central
+Prometheus, the mail server and the DNS server run outside the cluster on the same host.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\textwidth}{!}{\input{figures/architecture}}
+\caption{Main deployment on k3s: each node is a data centre. Grey services are internal
+(ClusterIP), blue ones are published on NodePorts, dashed lines are monitoring and security
+traffic.}
+\label{fig:arch}
+\end{figure}
+
+The baseline deployment uses one Incus container per service with a systemd unit; the location
+is given by environment variables. All tests and evidence exist for both platforms
+(Section~\ref{sec:eval}), and the comparison is itself informative: three of the problems reported
+in Section~\ref{sec:threats} only appeared on Kubernetes.
+
+\subsection{Identification and registration of elements}
+\label{sec:naming}
+
+Every instance builds its ID from five location levels, most specific first, like a DNS
+name~\cite{rfc1034}:
+\[
+\underbrace{\code{ingestion-service-ingestion-dc2-<hash>}}_{\text{service-instance (logical)}}.
+\underbrace{\code{k3s-node1}}_{\text{node (physical)}}.\code{rack1}.\code{dc2}.\code{centro}.\code{pt}
+\]
+The node level is the machine that runs the element and the instance level is the logical element
+on it: on Kubernetes they come from \code{spec.nodeName} and the pod name (downward API); on Incus
+from the host name and an instance number (Figure~\ref{fig:idtree}). Dots inside a level are
+replaced, so a label can never fake another level.
+
+\begin{figure}[ht]
+\centering
+\resizebox{0.85\textwidth}{!}{\input{figures/idtree}}
+\caption{Location hierarchy of the IDs. Orange leaves are the logical elements (pods); the node
+level is the physical machine.}
+\label{fig:idtree}
+\end{figure}
+
+Registration is decentralised: each instance posts \code{\{name, url, id, location\}} to the
+registry every 10~s. The call is an idempotent upsert, so it doubles as a heartbeat and recovers
+automatically when the registry restarts. On Kubernetes each pod registers its own pod IP; with the
+Service address all replicas collapsed into one entry, which we found and fixed. The registry checks
+every instance's \code{/health} every 10~s and removes it after two consecutive failures. Queries
+can be filtered by any level (\code{/services?dc=dc2}), and \code{/tree} returns instance counts per
+country, region, dc, rack and node.
+
+\subsection{Geographic location and delegation of responsibilities}
+
+Location is used, not only recorded:
+\begin{itemize}
+  \item \textbf{Discovery prefers the closest instance.} A service first asks for instances in its own
+        location up to a configurable scope (default: same dc), then any location, then a static
+        fallback. The dc2 sensor therefore feeds the dc2 ingestion pod, which we verified
+        (Section~\ref{sec:eval}).
+  \item \textbf{Each location serves its own clients.} The NodePorts use
+        \code{externalTrafficPolicy: Local}, so a node only forwards to its own pods and keeps the
+        client's source address~\cite{k8s_sourceip}, which the SIEM needs to block it.
+  \item \textbf{Monitoring is delegated per site.} The in-cluster Prometheus scrapes the local pods;
+        the central one only federates per-location aggregates and alerts.
+  \item \textbf{Security enforcement is delegated per node.} One Wazuh agent per k3s node reads the
+        logs of every pod on that node and executes the active responses locally; the manager only
+        decides.
+\end{itemize}
+
+\subsection{Monitoring by location with optimised bandwidth}
+
+Recording rules join every metric with \metric{service\_info} and sum it by country, region and dc:
+\metric{location:http\_requests:rate1m}, \metric{location:http\_errors:rate1m},
+\metric{location:http\_request\_duration\_seconds:p95} and \metric{location:instances:count}. The
+central Prometheus federates only \code{\{\_\_name\_\_=\textasciitilde"location:.+"\}} (plus
+\code{ALERTS}), following the hierarchical federation pattern~\cite{prometheus_federation}. Its
+traffic grows with the number of locations, not with the number of pods; the measured saving is in
+Section~\ref{sec:eval}.
+
+\subsection{Locating the source of an event}
+
+Because the same ID appears in the registry, in \metric{service\_info}, in every access-log line
+and, at node level, in the Wazuh agent name (\code{k3s-node-01.k3s-node1.rack1.dc2.centro.pt}), any
+event can be placed without a lookup table: a Wazuh alert names the node and carries the pod's full
+ID in \code{data.id}; a Prometheus alert can be joined with \metric{service\_info} to get the
+location. For example, the alerts of the DoS test identify both the attacker (\code{srcip}) and the
+attacked pod in dc1 (Section~\ref{sec:threats}).
+
+\subsection{Exposure and trust boundaries}
+
+Only ingestion and analytics are reachable from outside the cluster (NodePorts 30001/30003). The
+registry and storage are ClusterIP services: the registry has no authentication, so it must never
+be exposed. Pods have CPU and memory limits (500m, 256~MiB) and readiness and liveness probes, which
+both restart failed pods and cap what a flood can take from a node. The trust boundaries are
+therefore: the lab network (clients, attackers, mail, DNS), the node (NodePorts, agent, firewall),
+and the pod network (internal services, trusted by the SIEM rules, see
+Section~\ref{sec:threats}). The k3s nodes run as \emph{privileged} containers, which is part of the
+attack surface analysed next.

@@ -1,0 +1,100 @@
+\section{Risk Management and Mitigation}
+\label{sec:risk}
+
+\subsection{Attack surface}
+
+Table~\ref{tab:surface} lists every entry point of the deployment in Figure~\ref{fig:arch}, who can
+reach it, the threat it enables and the control we have. Digital surface dominates: there are no
+user accounts and the physical surface is a single host.
+
+\begin{table}[ht]
+\centering\small
+\caption{Attack surface of the k3s deployment.}
+\label{tab:surface}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright}p{3.3cm} >{\raggedright}p{2.1cm} >{\raggedright}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+Entry point & Reachable from & Threat & Control in place \\
+\midrule
+ingestion / analytics NodePorts & lab network & HTTP flood; forged readings & Wazuh 100210 + k3s-block; Prometheus load alerts; pod limits; input validation \\
+registry API (no auth) & pod network only & fake or hijacked registrations (discovery poisoning) & ClusterIP only; health checks remove dead entries; \emph{no authentication} \\
+storage API & pod network only & data tampering, read-heavy load & ClusterIP only; single writer \\
+SMTP (mail server) & lab network & spam, mail flood, open relay & SpamAssassin + hold queue; 100222 + firewall-drop; relay restrictions \\
+DNS zone file & DNS host & redirection of service names & real-time FIM + restore-dns \\
+DNS resolution path & lab network & cache poisoning, rogue resolver & \emph{none} \\
+k3s nodes (privileged containers) & host & container escape = host compromise & \emph{none}; documented limitation \\
+Image registry (plain HTTP) & lab network & image tampering & lab only, \emph{no TLS or signing} \\
+Prometheus UI/API (9090, NodePort 30090) & lab network & reading the topology; spotting the thresholds & \emph{none}: no authentication \\
+Wazuh dashboard (443) & lab network & blinding or misleading the defender & login page; API (55000) and indexer (9200) not reachable \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Attack and defense tree}
+
+Figure~\ref{fig:adtree} refines the attacker goal \emph{disrupt or subvert the temperature service}
+into the attacks we considered, with our countermeasures attached as defence nodes, in the notation
+of attack--defense trees~\cite{kordy2010adtrees}. All children are OR-refinements: each leaf alone
+reaches its parent goal. Grey nodes mark attacks for which we have no defence; they are the
+limitations discussed in Section~\ref{sec:concl}. The three threats of Section~\ref{sec:threats}
+correspond to the DoS, DNS and junk-email branches.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\textwidth}{!}{\input{figures/adtree}}
+\caption{Attack--defense tree. Red ellipses: attacks; green boxes: our defences; grey boxes:
+no effective defence in the current system.}
+\label{fig:adtree}
+\end{figure}
+
+The tree makes two priorities visible. First, the DoS defence covers only one of three ways to deny
+service; the other two (many sources, a compromised pod) are only \emph{seen} by Prometheus.
+Second, the registry is the most valuable unauthenticated asset: a fake registration redirects
+traffic exactly like a DNS hijack, but is invisible to file-integrity monitoring.
+
+\subsection{Large-scale monitoring strategy}
+
+Prometheus scrapes every instance every 5~s. In the cluster, pods are discovered through the
+Kubernetes API and relabelled to the same job names as on Incus (\code{ssle-registry},
+\code{ssle-ingestion}, \dots), so one rule file serves both platforms. The rules have three groups:
+
+\begin{itemize}
+  \item \textbf{Load anomalies} (\code{ssle-ddos-alerts}, every 5~s): request rate above 5~req/s
+        per job, p95 latency above 50~ms, and more than 3 requests in flight.
+  \item \textbf{Correlation and root cause} (\code{ssle-root-cause}): each alert is labelled
+        \code{kind=symptom} or \code{kind=root-cause} and names a \code{root\_cause}. For example,
+        \code{SSLERootCauseStorageDown} fires only when ingestion or analytics report storage errors
+        \emph{and} storage itself is down, while \code{SSLERootCauseStorageUnreachable} blames the
+        network or discovery when storage is up but unreachable, unless a request flood explains the
+        errors. \code{SSLERootCauseRequestFlood} combines high latency and high rate on the same job
+        and points the operator to Wazuh rule \rid{100210} for the source addresses.
+  \item \textbf{Per-location aggregates} (\code{ssle-location-aggregates}), used for federation
+        (Section~\ref{sec:arch}).
+\end{itemize}
+
+Two rules were changed after the tests proved them wrong: during the DoS test the
+\emph{unreachable} rule blamed the network for timeouts caused by an overloaded storage, so it now
+requires the errors to persist and excludes floods; and on Kubernetes a pod scaled to zero has no
+\code{up} series at all, so every rule that checks \code{up} uses \code{or vector(0)}.
+
+\subsection{Fault management (FCAPS) and the security gap}
+
+Figure~\ref{fig:fcaps} maps the FCAPS fault-management workflow~\cite{itu2000m3400} to our tools.
+Prometheus covers the classic part: it \emph{detects} anomalies, the hierarchical ID
+\emph{isolates} the element, the root-cause rules \emph{correlate} symptoms, the registry and
+Kubernetes \emph{resolve} failed instances, and each test produces the \emph{post-mortem}. The
+root-cause test of Section~\ref{sec:eval} exercises this chain end to end.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\textwidth}{!}{\input{figures/fcaps}}
+\caption{FCAPS fault-management workflow and the tool that implements each step.}
+\label{fig:fcaps}
+\end{figure}
+
+FCAPS fault management does not deal with explicit security events: from Prometheus' point of view a
+DNS hijack is not a fault at all (every service is up and answering), and a flood is only "high
+load". The SIEM closes this gap. Wazuh receives the same access logs plus file-integrity and mail
+events, correlates them with frequency rules (\rid{100210}, \rid{100222}) and triggers active
+responses. The two systems are linked by the common ID and by cross-references: the Prometheus flood
+root cause points to the Wazuh rule, and Wazuh's HTTP~5xx events (\rid{100201}) from each service
+are the security-side view of the same symptoms the root-cause rules correlate.

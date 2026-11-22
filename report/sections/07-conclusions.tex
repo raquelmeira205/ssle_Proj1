@@ -1,0 +1,55 @@
+\section{Conclusions}
+\label{sec:concl}
+
+\paragraph{Findings and contributions.}
+A single hierarchical name, used unchanged by the registry, the metrics, the SIEM and the logs, was
+the most useful design decision: every alert in this report names the pod, node and data centre
+involved without any lookup. The same name made location-aware discovery and per-location
+monitoring cheap to add, and federating only per-location aggregates reduced the central monitoring
+traffic to 0.7\% of a raw federation. Wazuh detected all three threats and responded automatically
+on both platforms, with no false positive against the legitimate clients. Over five repeated runs a
+tampered DNS zone was restored after 0.28~s on average and a mail flood was blocked after 3.0~s;
+flood sources were blocked within about 3~s in three runs, but in the other two the attacked
+service was too overloaded to log the requests the detection depends on. Prometheus' correlation rules reduced each storage failure to one root-cause
+alert. Moving the platform to Kubernetes required changes that only showed up under attack: a
+block that acts before \code{kube-proxy}, an exception for the pod network, faster discovery of new
+pod logs, and gentler liveness probes.
+
+\paragraph{Why the solution is not perfect.}
+\begin{itemize}
+  \item \textbf{Detection depends on the victim.} Requests are logged when they complete, so a
+        service too overloaded to answer is also too overloaded to be protected: in one of five
+        DoS runs nothing was detected at all.
+  \item \textbf{Per-source thresholds.} Both flood rules count requests per source address. In our
+        test, 40 sources at one request per second each produced no Wazuh alert at all; only
+        Prometheus saw the flood, and nothing responds automatically.
+  \item \textbf{The SIEM can be blinded.} Each node's agent forwards at most about 500 events per
+        second; above that, events from every pod on the node are lost or delayed by more than
+        10~s. A flood therefore also hides whatever else happens on the attacked node.
+  \item \textbf{Trusted interior.} Internal sources are exempt from the flood rule to avoid a
+        self-inflicted outage, so a compromised pod can flood its neighbours unchallenged.
+  \item \textbf{Unauthenticated registry.} A fake registration would redirect traffic like a DNS
+        hijack and is invisible to file-integrity monitoring.
+  \item \textbf{Narrow DNS coverage.} Only tampering with the zone file is detected; cache
+        poisoning, rogue resolvers, on-path spoofing and CoreDNS changes are not.
+  \item \textbf{Weak content filtering.} With untrained Bayes, SpamAssassin caught 70\% of a public
+        spam corpus and would have quarantined 10\% of legitimate mail.
+  \item \textbf{Hand-written correlation.} Root-cause rules exist per dependency (storage,
+        ingestion); new services need new rules.
+  \item \textbf{Single points of failure and a single host.} One registry, one SQLite writer, one
+        Wazuh manager, privileged k3s nodes, and all locations on one machine: the numbers are lower
+        bounds, the scalability measurements are noisy (Section~\ref{sec:repeat}), and the root of
+        the deployment is a single failure domain.
+  \item \textbf{Defences can hurt.} Twice the DoS response blocked our own service, and the liveness
+        probes once killed healthy pods under load. Every response needs its own false-positive
+        test.
+\end{itemize}
+
+\paragraph{Future work.}
+The second project (attack tolerance) can build directly on these gaps: authenticated, replicated
+registries per location with the hierarchy delegated like DNS zones; replicated or sharded
+storage; distributed-flood detection that feeds Prometheus anomalies into Wazuh so they can trigger
+responses (for example rate limiting per location rather than per source); Kubernetes audit logs
+and network policies to cover CoreDNS tampering and pod-to-pod abuse; a dependency graph or
+Alertmanager inhibition to generate root-cause rules; a Wazuh manager cluster; and repeated
+measurements on separate physical hosts.

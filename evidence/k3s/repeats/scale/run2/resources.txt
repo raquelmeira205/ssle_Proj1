@@ -1,0 +1,315 @@
+## 2026-11-21T12:35:58-05:00
+analytics-dc1-767846b666-8kgkk   93m    45Mi   
+analytics-dc2-7c64994f87-b9x9p   4m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   4m     29Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m     29Mi   
+prometheus-7df4755987-wvnc2      28m    73Mi   
+registry-5ddcf48556-wbwvp        481m   34Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m     28Mi   
+storage-55d8b74767-pp2rq         59m    38Mi   
+prom-incluster process_cpu_seconds_total 47.26
+prom-incluster process_resident_memory_bytes 6.6768896e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 126.82MiB
+incus wazuh-container memory_MiB 2.12GiB
+## 2026-11-21T12:36:06-05:00
+analytics-dc1-767846b666-8kgkk   3m    45Mi   
+analytics-dc2-7c64994f87-b9x9p   4m    32Mi   
+ingestion-dc1-679b5b468b-rn4xc   6m    32Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m    29Mi   
+prometheus-7df4755987-wvnc2      21m   56Mi   
+registry-5ddcf48556-wbwvp        61m   29Mi   
+sensor-dc1-5674587469-ph28m      2m    27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m    28Mi   
+storage-55d8b74767-pp2rq         5m    38Mi   
+prom-incluster process_cpu_seconds_total 47.44
+prom-incluster process_resident_memory_bytes 6.578176e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 104.59MiB
+incus wazuh-container memory_MiB 2.07GiB
+## 2026-11-21T12:36:11-05:00
+analytics-dc1-767846b666-8kgkk   3m    45Mi   
+analytics-dc2-7c64994f87-b9x9p   4m    32Mi   
+ingestion-dc1-679b5b468b-rn4xc   6m    32Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m    29Mi   
+prometheus-7df4755987-wvnc2      21m   56Mi   
+registry-5ddcf48556-wbwvp        61m   29Mi   
+sensor-dc1-5674587469-ph28m      2m    27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m    28Mi   
+storage-55d8b74767-pp2rq         5m    38Mi   
+prom-incluster process_cpu_seconds_total 47.49
+prom-incluster process_resident_memory_bytes 6.5974272e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 92.11MiB
+incus wazuh-container memory_MiB 2.11GiB
+## 2026-11-21T12:36:17-05:00
+analytics-dc1-767846b666-8kgkk   3m    45Mi   
+analytics-dc2-7c64994f87-b9x9p   4m    32Mi   
+ingestion-dc1-679b5b468b-rn4xc   6m    32Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m    29Mi   
+prometheus-7df4755987-wvnc2      21m   56Mi   
+registry-5ddcf48556-wbwvp        61m   29Mi   
+sensor-dc1-5674587469-ph28m      2m    27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m    28Mi   
+storage-55d8b74767-pp2rq         5m    38Mi   
+prom-incluster process_cpu_seconds_total 47.52
+prom-incluster process_resident_memory_bytes 6.5093632e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 132.21MiB
+incus wazuh-container memory_MiB 2.12GiB
+## 2026-11-21T12:36:23-05:00
+analytics-dc1-767846b666-8kgkk   2m    45Mi   
+analytics-dc2-7c64994f87-b9x9p   3m    32Mi   
+ingestion-dc1-679b5b468b-rn4xc   2m    29Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m    29Mi   
+prometheus-7df4755987-wvnc2      44m   58Mi   
+registry-5ddcf48556-wbwvp        7m    29Mi   
+sensor-dc1-5674587469-ph28m      2m    27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m    28Mi   
+storage-55d8b74767-pp2rq         4m    38Mi   
+prom-incluster process_cpu_seconds_total 47.64
+prom-incluster process_resident_memory_bytes 6.9971968e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 127.56MiB
+incus wazuh-container memory_MiB 2.13GiB
+## 2026-11-21T12:36:29-05:00
+analytics-dc1-767846b666-8kgkk   2m    45Mi   
+analytics-dc2-7c64994f87-b9x9p   3m    32Mi   
+ingestion-dc1-679b5b468b-rn4xc   2m    29Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m    29Mi   
+prometheus-7df4755987-wvnc2      44m   58Mi   
+registry-5ddcf48556-wbwvp        7m    29Mi   
+sensor-dc1-5674587469-ph28m      2m    27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m    28Mi   
+storage-55d8b74767-pp2rq         4m    38Mi   
+prom-incluster process_cpu_seconds_total 47.72
+prom-incluster process_resident_memory_bytes 6.9296128e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 143.11MiB
+incus wazuh-container memory_MiB 2.11GiB
+## 2026-11-21T12:36:34-05:00
+analytics-dc1-767846b666-8kgkk   2m     45Mi   
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   370m   32Mi   
+ingestion-dc2-b9f875d59-nhrmr    5m     29Mi   
+prometheus-7df4755987-wvnc2      12m    60Mi   
+registry-5ddcf48556-wbwvp        118m   32Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi   
+storage-55d8b74767-pp2rq         200m   42Mi   
+prom-incluster process_cpu_seconds_total 47.83
+prom-incluster process_resident_memory_bytes 6.541312e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 129.78MiB
+incus wazuh-container memory_MiB 2.08GiB
+## 2026-11-21T12:36:41-05:00
+analytics-dc1-767846b666-8kgkk   2m     45Mi   
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   370m   32Mi   
+ingestion-dc2-b9f875d59-nhrmr    5m     29Mi   
+prometheus-7df4755987-wvnc2      12m    60Mi   
+registry-5ddcf48556-wbwvp        118m   32Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi   
+storage-55d8b74767-pp2rq         200m   42Mi   
+prom-incluster process_cpu_seconds_total 48.07
+prom-incluster process_resident_memory_bytes 6.3971328e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 98.21MiB
+incus wazuh-container memory_MiB 2.08GiB
+## 2026-11-21T12:36:46-05:00
+analytics-dc1-767846b666-8kgkk   2m     45Mi   
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   370m   32Mi   
+ingestion-dc2-b9f875d59-nhrmr    5m     29Mi   
+prometheus-7df4755987-wvnc2      12m    60Mi   
+registry-5ddcf48556-wbwvp        118m   32Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi   
+storage-55d8b74767-pp2rq         200m   42Mi   
+prom-incluster process_cpu_seconds_total 48.1
+prom-incluster process_resident_memory_bytes 6.213632e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 132.27MiB
+incus wazuh-container memory_MiB 2.09GiB
+## 2026-11-21T12:36:52-05:00
+analytics-dc1-767846b666-8kgkk   2m     45Mi   
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   379m   32Mi   
+ingestion-dc2-b9f875d59-nhrmr    413m   32Mi   
+prometheus-7df4755987-wvnc2      27m    71Mi   
+registry-5ddcf48556-wbwvp        181m   30Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi   
+storage-55d8b74767-pp2rq         228m   44Mi   
+prom-incluster process_cpu_seconds_total 48.21
+prom-incluster process_resident_memory_bytes 6.508544e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 132.27MiB
+incus wazuh-container memory_MiB 2.11GiB
+## 2026-11-21T12:36:57-05:00
+analytics-dc1-767846b666-8kgkk   2m     45Mi   
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   379m   32Mi   
+ingestion-dc2-b9f875d59-nhrmr    413m   32Mi   
+prometheus-7df4755987-wvnc2      27m    71Mi   
+registry-5ddcf48556-wbwvp        181m   30Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi   
+storage-55d8b74767-pp2rq         228m   44Mi   
+prom-incluster process_cpu_seconds_total 48.46
+prom-incluster process_resident_memory_bytes 6.3401984e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 133.37MiB
+incus wazuh-container memory_MiB 2.10GiB
+## 2026-11-21T12:37:07-05:00
+analytics-dc1-767846b666-8kgkk   3m     45Mi   
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   260m   32Mi   
+ingestion-dc2-b9f875d59-nhrmr    413m   32Mi   
+prometheus-7df4755987-wvnc2      14m    58Mi   
+registry-5ddcf48556-wbwvp        318m   29Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m     28Mi   
+storage-55d8b74767-pp2rq         350m   46Mi   
+prom-incluster process_cpu_seconds_total 48.53
+prom-incluster process_resident_memory_bytes 6.4581632e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 128.63MiB
+incus wazuh-container memory_MiB 2.09GiB
+## 2026-11-21T12:37:12-05:00
+analytics-dc1-767846b666-8kgkk   3m     45Mi   
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi   
+ingestion-dc1-679b5b468b-rn4xc   260m   32Mi   
+ingestion-dc2-b9f875d59-nhrmr    413m   32Mi   
+prometheus-7df4755987-wvnc2      14m    58Mi   
+registry-5ddcf48556-wbwvp        318m   29Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      2m     28Mi   
+storage-55d8b74767-pp2rq         350m   46Mi   
+prom-incluster process_cpu_seconds_total 48.62
+prom-incluster process_resident_memory_bytes 6.285312e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 127.15MiB
+incus wazuh-container memory_MiB 2.12GiB
+## 2026-11-21T12:37:18-05:00
+analytics-dc1-767846b666-8kgkk   262m   46Mi    
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi    
+ingestion-dc1-679b5b468b-rn4xc   30m    32Mi    
+ingestion-dc2-b9f875d59-nhrmr    179m   31Mi    
+prometheus-7df4755987-wvnc2      23m    102Mi   
+registry-5ddcf48556-wbwvp        149m   30Mi    
+sensor-dc1-5674587469-ph28m      5m     27Mi    
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi    
+storage-55d8b74767-pp2rq         174m   47Mi    
+prom-incluster process_cpu_seconds_total 48.75
+prom-incluster process_resident_memory_bytes 6.6224128e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 129.23MiB
+incus wazuh-container memory_MiB 2.12GiB
+## 2026-11-21T12:37:25-05:00
+analytics-dc1-767846b666-8kgkk   262m   46Mi    
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi    
+ingestion-dc1-679b5b468b-rn4xc   30m    32Mi    
+ingestion-dc2-b9f875d59-nhrmr    179m   31Mi    
+prometheus-7df4755987-wvnc2      23m    102Mi   
+registry-5ddcf48556-wbwvp        149m   30Mi    
+sensor-dc1-5674587469-ph28m      5m     27Mi    
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi    
+storage-55d8b74767-pp2rq         174m   47Mi    
+prom-incluster process_cpu_seconds_total 48.79
+prom-incluster process_resident_memory_bytes 6.586368e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 113.48MiB
+incus wazuh-container memory_MiB 2.11GiB
+## 2026-11-21T12:37:30-05:00
+analytics-dc1-767846b666-8kgkk   262m   46Mi    
+analytics-dc2-7c64994f87-b9x9p   2m     32Mi    
+ingestion-dc1-679b5b468b-rn4xc   30m    32Mi    
+ingestion-dc2-b9f875d59-nhrmr    179m   31Mi    
+prometheus-7df4755987-wvnc2      23m    102Mi   
+registry-5ddcf48556-wbwvp        149m   30Mi    
+sensor-dc1-5674587469-ph28m      5m     27Mi    
+sensor-dc2-7977694bf7-qbcm8      3m     28Mi    
+storage-55d8b74767-pp2rq         174m   47Mi    
+prom-incluster process_cpu_seconds_total 49.02
+prom-incluster process_resident_memory_bytes 5.9281408e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 139.11MiB
+incus wazuh-container memory_MiB 2.47GiB
+## 2026-11-21T12:37:37-05:00
+analytics-dc1-767846b666-8kgkk   436m   47Mi   
+analytics-dc2-7c64994f87-b9x9p   395m   34Mi   
+ingestion-dc1-679b5b468b-rn4xc   3m     31Mi   
+ingestion-dc2-b9f875d59-nhrmr    5m     30Mi   
+prometheus-7df4755987-wvnc2      13m    57Mi   
+registry-5ddcf48556-wbwvp        277m   30Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     29Mi   
+storage-55d8b74767-pp2rq         251m   49Mi   
+prom-incluster process_cpu_seconds_total 49.09
+prom-incluster process_resident_memory_bytes 6.2754816e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 135.50MiB
+incus wazuh-container memory_MiB 2.06GiB
+## 2026-11-21T12:37:43-05:00
+analytics-dc1-767846b666-8kgkk   436m   47Mi   
+analytics-dc2-7c64994f87-b9x9p   395m   34Mi   
+ingestion-dc1-679b5b468b-rn4xc   3m     31Mi   
+ingestion-dc2-b9f875d59-nhrmr    5m     30Mi   
+prometheus-7df4755987-wvnc2      13m    57Mi   
+registry-5ddcf48556-wbwvp        277m   30Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     29Mi   
+storage-55d8b74767-pp2rq         251m   49Mi   
+prom-incluster process_cpu_seconds_total 49.12
+prom-incluster process_resident_memory_bytes 6.2763008e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 126.40MiB
+incus wazuh-container memory_MiB 2.07GiB
+## 2026-11-21T12:37:48-05:00
+analytics-dc1-767846b666-8kgkk   253m   47Mi   
+analytics-dc2-7c64994f87-b9x9p   309m   33Mi   
+ingestion-dc1-679b5b468b-rn4xc   3m     31Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m     30Mi   
+prometheus-7df4755987-wvnc2      25m    67Mi   
+registry-5ddcf48556-wbwvp        290m   31Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     29Mi   
+storage-55d8b74767-pp2rq         211m   49Mi   
+prom-incluster process_cpu_seconds_total 49.16
+prom-incluster process_resident_memory_bytes 6.2529536e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 108.14MiB
+incus wazuh-container memory_MiB 2.11GiB
+## 2026-11-21T12:37:54-05:00
+analytics-dc1-767846b666-8kgkk   253m   47Mi   
+analytics-dc2-7c64994f87-b9x9p   309m   33Mi   
+ingestion-dc1-679b5b468b-rn4xc   3m     31Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m     30Mi   
+prometheus-7df4755987-wvnc2      25m    67Mi   
+registry-5ddcf48556-wbwvp        290m   31Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     29Mi   
+storage-55d8b74767-pp2rq         211m   49Mi   
+prom-incluster process_cpu_seconds_total 49.32
+prom-incluster process_resident_memory_bytes 6.7014656e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 83.44MiB
+incus wazuh-container memory_MiB 2.10GiB
+## 2026-11-21T12:37:59-05:00
+analytics-dc1-767846b666-8kgkk   253m   47Mi   
+analytics-dc2-7c64994f87-b9x9p   309m   33Mi   
+ingestion-dc1-679b5b468b-rn4xc   3m     31Mi   
+ingestion-dc2-b9f875d59-nhrmr    4m     30Mi   
+prometheus-7df4755987-wvnc2      25m    67Mi   
+registry-5ddcf48556-wbwvp        290m   31Mi   
+sensor-dc1-5674587469-ph28m      2m     27Mi   
+sensor-dc2-7977694bf7-qbcm8      3m     29Mi   
+storage-55d8b74767-pp2rq         211m   49Mi   
+prom-incluster process_cpu_seconds_total 49.52
+prom-incluster process_resident_memory_bytes 5.9404288e+07
+prom-incluster prometheus_tsdb_head_series 2224
+incus prometheus-container memory_MiB 71.86MiB
+incus wazuh-container memory_MiB 2.12GiB

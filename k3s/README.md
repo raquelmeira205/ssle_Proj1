@@ -115,8 +115,12 @@ PLATFORM=k3s ./apply-configs.sh
   It implements the Wazuh 4.x active-response protocol (check_keys, add, delete after 60 s).
   `apply-configs.sh` binds it to rule 100210 on the manager.
 - **Internal traffic.** Pods call each other with pod IPs (10.42.0.0/16) that change on every
-  restart. The `ssle-services` CDB list contains the prefix `10.42.`, so rule 100210 never blocks the
-  services' own calls. That fixes the self-inflicted outage found on Incus.
+  restart, so they can't be listed one by one in the `ssle-services` CDB list (a `10.42.` prefix
+  key never matched, and `<srcip>!10.42.0.0/16</srcip>` behaved as a positive match). Rule 100209,
+  a level-0 child of 100200 for `srcip` 10.42.0.0/16, ends successful pod-to-pod requests before
+  100210 counts them, so the services never block their own calls. That fixes the self-inflicted
+  outage found on Incus. 100209 is defined after 100201, so internal 5xx errors still reach the
+  root-cause correlation.
 - **DNS and mail** stay outside the cluster. `PLATFORM=k3s ./apply-configs.sh dns` points
   `ingestion.ssle.local` and `analytics.ssle.local` at the node publishing the NodePorts. Registry
   and storage get no public name.
@@ -146,7 +150,7 @@ To go back to monitoring the Incus deployment from the central Prometheus:
   and the registry remains for location-aware lookups.
 - `k3s-block` blocks on the node that saw the flood. With `externalTrafficPolicy: Local` that's the
   node the attacker uses. An attacker using both nodes is blocked separately on each.
-- The pod-network entry in the CDB list means a **compromised pod** flooding another one isn't
+- Rule 100209 exempts the whole pod network, so a **compromised pod** flooding another one isn't
   blocked by Wazuh. Only Prometheus would see it.
 - On k3s, DNS hijacking of the cluster itself would mean tampering with the CoreDNS ConfigMap.
   File-integrity monitoring can't see that; it would need Kubernetes audit logs sent to Wazuh.

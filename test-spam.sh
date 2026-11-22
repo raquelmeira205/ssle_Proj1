@@ -117,7 +117,12 @@ SENT=$(grep -l "^250 2.0.0 Ok: queued" "$EVID"/4-flood-smtp-*.txt 2>/dev/null | 
 # "client=" is logged when Postfix starts a message (after MAIL FROM): these are what rule 100222
 # counts. A session cut by the firewall before the final "250 queued" never delivers anything.
 STARTED=$(mlog_since "$M" | grep -c "client=.*\[$ATT_IP\]")
-info "flood: $STARTED of $COUNT sessions reached Postfix, $SENT completed (the rest were cut by the block mid-transfer)"
+# How many finish is a race between the 12 parallel sessions and the block (threshold: 10 in 30 s)
+if [ "$SENT" -lt "$STARTED" ]; then
+  info "flood: $STARTED of $COUNT sessions reached Postfix, $SENT completed (the rest were cut by the block mid-transfer)"
+else
+  info "flood: $STARTED of $COUNT sessions reached Postfix, all $SENT completed before the block (threshold is 10 messages)"
+fi
 cat "$EVID"/4-flood-smtp-*.txt > "$EVID/4-flood-smtp.txt"; rm -f "$EVID"/4-flood-smtp-*.txt
 
 if wait_alert "$MARK" 100222 20 "\"srcip\":\"$ATT_IP\"" > /dev/null; then ok "rule 100222 (mail flood) fired for $ATT_IP"

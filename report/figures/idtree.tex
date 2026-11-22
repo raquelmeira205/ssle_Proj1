@@ -1,0 +1,24 @@
+% Figure 2: naming hierarchy and the k3s mapping. Source: common.py, k8s/ssle.yaml, FACTS.md section 3.
+\begin{forest}
+  for tree={font=\scriptsize, draw, rounded corners=2pt, align=center, l sep=4mm, s sep=2mm,
+            edge={-{Stealth[length=1.3mm]}}, fill=blue!5}
+  [{country\\\code{pt}}
+    [{region\\\code{centro}}
+      [{dc\\\code{dc1}\\(k3s node label)}
+        [{rack\\\code{rack1}}
+          [{node\\\code{k3s-master}\\(\code{spec.nodeName})}
+            [{instance\\\code{storage-<pod>}}, fill=orange!15]
+            [{instance\\\code{ingestion-dc1-<pod>}}, fill=orange!15]
+          ]
+        ]
+      ]
+      [{dc\\\code{dc2}}
+        [{rack\\\code{rack1}}
+          [{node\\\code{k3s-node1}}
+            [{instance\\\code{ingestion-dc2-<pod>}}, fill=orange!15]
+          ]
+        ]
+      ]
+    ]
+  ]
+\end{forest}

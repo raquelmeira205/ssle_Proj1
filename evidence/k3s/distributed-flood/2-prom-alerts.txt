@@ -1,0 +1,8 @@
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-21T17:02:33
+    SSLEHighRequestRate              firing   job=ssle-storage     root_cause=-        since 2026-11-21T17:02:33
+    SSLEHighRequestRate              firing   job=ssle-analytics   root_cause=-        since 2026-11-21T17:02:33
+    SSLEHighP95Latency               pending  job=ssle-ingestion   root_cause=-        since 2026-11-21T17:02:58
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-21T17:02:33
+    SSLEHighP95Latency               firing   job=ssle-storage     root_cause=-        since 2026-11-21T17:02:23
+    SSLERootCauseRequestFlood        firing   job=ssle-storage     root_cause=request-flood since 2026-11-21T17:02:35
+    SSLERootCauseRequestFlood        firing   job=ssle-analytics   root_cause=request-flood since 2026-11-21T17:02:35

@@ -1,0 +1,83 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,fit,arrows.meta,shapes.geometric,backgrounds,calc}
+\usepackage{forest}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{caption}
+\usepackage{enumitem}
+\setlist{itemsep=1pt,topsep=3pt}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+\usepackage[htt]{hyphenat}   % allow line breaks inside \texttt
+\emergencystretch=3em
+
+% Visible marker for content the repository does not provide
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{TODO(#1)}}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\rid}[1]{\textsf{#1}}                 % Wazuh rule id
+\newcommand{\metric}[1]{\texttt{\small #1}}
+
+\title{Threat Detection, Monitoring and Prevention\\in a Location-Aware Service Platform\\[4pt]
+  \large Security in Large Scale Systems --- Project 1}
+\author{\TODO{group member names and student numbers}\\
+  Universidade de Aveiro, DETI}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We designed, deployed and attacked a small service-based IoT platform (temperature sensors,
+ingestion, storage, analytics and a service registry) that is built to grow across locations. Every
+element gets a hierarchical name, from \emph{service instance} up to \emph{country}, that is the
+same in the registry, in Prometheus, in Wazuh and in every log line, so any metric or security event
+points to where it came from. The platform runs as Docker images in a two-node Kubernetes (k3s)
+cluster in which each node is a data centre; an earlier one-container-per-service deployment on
+Incus serves as a baseline. Prometheus monitors every instance, correlates symptoms into a single
+root-cause alert, and exports per-location aggregates that cut federation traffic to under 1\% of a
+raw federation. Wazuh detects three syllabus threats (a massive HTTP denial of service, junk email,
+and DNS hijacking) and responds automatically: a tampered DNS zone was restored in
+0.28~s on average over five runs, and flood sources were blocked within about 3~s in three of five
+runs, but not when the attacked service was too overloaded to log the attack. We report what worked,
+what failed (including defences that caused their own outage), and where the design stops scaling.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{sections/01-introduction}
+\input{sections/02-state-of-the-art}
+\input{sections/03-architecture}
+\input{sections/04-risk}
+\input{sections/05-threats}
+\input{sections/06-evaluation}
+\input{sections/07-conclusions}
+
+\section*{Use of AI tools}
+\TODO{keep or delete}
+AI assistance was used for drafting and wording support. The architecture, implementation,
+experiments and analysis are the authors' own.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

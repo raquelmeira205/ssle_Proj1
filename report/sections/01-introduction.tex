@@ -1,0 +1,41 @@
+\section{Introduction}
+\label{sec:intro}
+
+Large-scale service platforms, such as telecom and cloud operators or IoT back-ends, have two
+problems the small version of the same system does not have. First, \emph{finding things}: with
+hundreds of instances spread over sites, an alert is useless unless it says which instance, on
+which machine, in which data centre. Second, \emph{defending at scale}: the defences must work on
+every instance at once, must not overload the links between sites with monitoring traffic, and must
+not hurt the system they protect.
+
+The objective of this project is to design and run a service-based architecture that scales to
+large scale, monitor it with Prometheus, and integrate it with a SIEM (Wazuh) that detects three
+types of incident from the course syllabus and responds automatically. We built a small IoT
+pipeline in which temperature sensors send readings to an ingestion service, which stores them
+through a storage service, while an analytics service computes statistics and a registry provides
+naming and discovery. The platform runs as Docker images in a two-node Kubernetes (k3s) cluster in
+which each node is a different data centre. An earlier deployment with one Incus container per
+service was kept as a baseline, and every test runs unchanged on both.
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item A hierarchical naming scheme (\emph{instance.node.rack.dc.region.country}) that is used
+        unchanged by the registry, the metrics, the SIEM agents and the logs, so the source of any
+        event can be located by name (Section~\ref{sec:arch}).
+  \item Location-aware discovery and per-location Prometheus aggregates, which reduce the
+        federated monitoring traffic to 0.7\% of a raw federation (Section~\ref{sec:eval}).
+  \item Detection and automatic response for a massive HTTP denial of service, junk email and DNS
+        hijacking, including a Kubernetes-specific block that acts before \code{kube-proxy}
+        (Section~\ref{sec:threats}).
+  \item Correlation of anomaly events into a single root-cause alert, following the FCAPS fault
+        management workflow (Section~\ref{sec:risk}).
+  \item Automated proof-of-concept tests that record detection and response times, false
+        positives and recovery as evidence, and an honest account of what failed.
+\end{itemize}
+
+\paragraph{Overview.}
+Section~\ref{sec:sota} reviews related work and tools. Section~\ref{sec:arch} describes the
+architecture and naming. Section~\ref{sec:risk} analyses the attack surface, presents an
+attack--defense tree and the monitoring strategy. Section~\ref{sec:threats} covers the three
+threats, Section~\ref{sec:eval} evaluates the approaches and their scalability, and
+Section~\ref{sec:concl} concludes. The appendix lists how to reproduce every result.

@@ -1,0 +1,110 @@
+Run started 2026-11-21T12:25:23-05:00 on kali, platform k3s
+
+################################################################################
+ THREAT: Junk email (spam content and bulk mail flood)
+################################################################################
+ Description   : Unsolicited bulk mail: spam/phishing content, and high-volume sending from one source.
+ Why relevant  : The mail server is how operators get alerts and talk to users; spam is the main carrier of phishing/fraud, and a flood fills the queue, the disk and the spamd workers.
+ Exploitation  : Anyone who can reach port 25 can submit mail (no authentication for local recipients); before the hardening the whole lab /24 was trusted and could relay.
+ Monitoring    : Wazuh reads /var/log/mail.log: 100220 spamd 'identified spam', 100223 Postfix 'hold' (quarantine), 100221 accepted message per client IP, 100222 = 10 messages in 30 s from the same srcip.
+ Action-resp.  : Spam content: quarantined in the Postfix hold queue (header_checks). Flood: firewall-drop of the sender IP for 60 s. Relay: refused by Postfix (mynetworks = localhost only).
+################################################################################
+
+== 0. Setup
+  ....  mail server mail-container = 10.255.255.133:25
+  ....  attacker attacker1 = 10.255.255.144, legitimate sender legit-client = 10.255.255.156
+  ....  mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
+  ....  header_checks = regexp:/etc/postfix/header_checks
+
+== 1. Baseline: legitimate message from legit-client
+220 mail-container.incus ESMTP Postfix (Ubuntu)
+250-mail-container.incus
+250-PIPELINING
+250-SIZE 10240000
+250-VRFY
+250-ETRN
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-8BITMIME
+250-DSN
+250-SMTPUTF8
+250 CHUNKING
+250 2.1.0 Ok
+250 2.1.5 Ok
+354 End data with <CR><LF>.<CR><LF>
+250 2.0.0 Ok: queued as D26AE3A22C3
+221 2.0.0 Bye
+  PASS  legitimate message accepted
+  ....  waiting for SpamAssassin + local delivery (up to 60 s)
+  PASS  legitimate message delivered to the mailbox
+  PASS  SpamAssassin scored it as clean
+
+== 2. Spam content: GTUBE message from attacker1
+  PASS  spam accepted for scanning
+  ....  waiting for SpamAssassin (up to 60 s)
+  PASS  SpamAssassin identified the spam
+  PASS  spam quarantined on HOLD (not delivered)
+  PASS  nothing was delivered to the mailbox
+  ....  hold queue (! = on hold): 9 message(s)
+  PASS  Wazuh rule 100220 fired
+  2026-11-21T17:25:29.785+0000  rule 100220 (level 7, fired 9 times)
+      source : srcip=-
+      where  : agent=mail-service-01.kali.rack1.dc1.centro.pt (10.255.255.133)
+      what   : SSLE Junk Email: SpamAssassin identified spam message on mail-container
+  PASS  Wazuh rule 100223 fired
+  2026-11-21T17:25:29.797+0000  rule 100223 (level 6, fired 9 times)
+      source : srcip=-
+      where  : agent=mail-service-01.kali.rack1.dc1.centro.pt (10.255.255.133)
+      what   : SSLE Junk Email: spam message quarantined (Postfix hold queue)
+
+== 3. Open relay: attacker1 tries to send to an outside domain
+220 mail-container.incus ESMTP Postfix (Ubuntu)
+250-mail-container.incus
+250-PIPELINING
+250-SIZE 10240000
+250-VRFY
+250-ETRN
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-8BITMIME
+250-DSN
+250-SMTPUTF8
+250 CHUNKING
+250 2.1.0 Ok
+454 4.7.1 <victim@example.org>: Relay access denied
+554 5.5.1 Error: no valid recipients
+221 2.7.0 Error: I can break rules, too. Goodbye.
+  PASS  relay refused (Relay access denied)
+
+== 4. Flood: 12 messages in parallel from attacker1
+  ....  flood: 12 of 12 sessions reached Postfix, all 12 completed before the block (threshold is 10 messages)
+  PASS  rule 100222 (mail flood) fired for 10.255.255.144
+  2026-11-21T17:25:35.744+0000  rule 100222 (level 10, fired 9 times)
+      source : srcip=10.255.255.144
+      where  : agent=mail-service-01.kali.rack1.dc1.centro.pt (10.255.255.133)
+      what   : SSLE Junk Email Flood: high mail volume from 10.255.255.144 - blocking sender
+  2026-11-21T17:25:35.771+0000  rule 100222 (level 10, fired 10 times)
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+   40  2236 DROP       all  --  *      *       10.255.255.144       0.0.0.0/0           
+  PASS  10.255.255.144 blocked 3.0 s after the flood started
+  PASS  firewall-drop add logged on mail-container
+  PASS  attacker cannot connect while blocked
+  PASS  legitimate sender 10.255.255.156 not blocked
+  PASS  legitimate sender can still send during the block
+
+== 5. Recovery: block removed after 60 s (skip with --no-wait)
+  ....  skipped
+
+== Post-mortem summary
+  spam content : flagged by SpamAssassin -> quarantined on hold
+  open relay   : refused
+  flood        : 12/12 sessions reached Postfix, 12 completed; first 100222 alert after 2.3 s; blocked after 3.0 s
+  false positive (legit sender blocked): no
+  limitations  : GTUBE is a test signature (real spam needs Bayes/RBL tuning); a spammer that rotates IPs or
+                 stays under 10 messages/30 s is not blocked; quarantined mail must be reviewed by an operator.
+
+========================================
+Result: 16 passed, 0 failed
+Evidence saved in evidence/k3s/spam/
+========================================
