@@ -1,0 +1,148 @@
+Run started 2026-11-22T14:03:31-05:00 on kali, platform k3s
+
+################################################################################
+ SCALABILITY EVALUATION
+################################################################################
+ Questions : does adding instances in another location add capacity? does discovery stay
+             location-aware? how do the registry and the monitoring scale with the number of
+             instances and locations?
+ Load      : 3 load generators x 8 workers, 20 s per phase, closed loop
+################################################################################
+
+== 0. Setup
+  ....  platform k3s, registry http://10.43.117.151:5050
+  ....  Wazuh agents on k3s-master k3s-node1 stopped for the benchmark (restarted on exit)
+  PASS  ingestion-dc2 pod is running on k3s-node1 (dc2)
+  PASS  analytics-dc2 pod is running on k3s-node1 (dc2)
+
+== 1. Location-aware discovery
+  PASS  /tree shows the new location dc2
+  PASS  lookup ingestion-service?dc=dc2 -> ingestion-service-ingestion-dc2-b9f875d59-nhrmr.k3s-node1.rack1.dc2.centro.pt
+  PASS  lookup analytics-service?dc=dc2 -> analytics-service-analytics-dc2-7c64994f87-b9x9p.k3s-node1.rack1.dc2.centro.pt
+
+== 2. Horizontal scaling: ingestion
+  ok 572, failed 0, 28.4 ok req/s, p50 285 ms, p95 377 ms
+  ok 578, failed 0, 28.6 ok req/s, p50 284 ms, p95 381 ms
+  ok 572, failed 0, 28.3 ok req/s, p50 284 ms, p95 386 ms
+  requests/s per instance:
+      {instance=10.42.1.31:5001} 0.6000000000000001
+      {instance=10.42.0.76:5001} 85.30000000000001
+  requests/s per location (location:http_requests:rate1m):
+      {country=pt,dc=dc1,region=centro,service=ingestion-service} 15.472734906269185
+      {country=pt,dc=dc2,region=centro,service=ingestion-service} 0.5455026644796934
+  storage writes/s:
+      {} 85.5
+  storage p95 latency (s):
+      {} 0.03006249999999984
+  ....  ingestion, 1-instance: 85.3 req/s total, worst p95 386 ms, 0.0 failed of 1722
+  ok 728, failed 0, 35.9 ok req/s, p50 133 ms, p95 498 ms
+  ok 714, failed 0, 35.2 ok req/s, p50 217 ms, p95 501 ms
+  ok 718, failed 0, 35.5 ok req/s, p50 209 ms, p95 489 ms
+  requests/s per instance:
+      {instance=10.42.1.31:5001} 60.90000000000001
+      {instance=10.42.0.76:5001} 58.4
+  requests/s per location (location:http_requests:rate1m):
+      {country=pt,dc=dc1,region=centro,service=ingestion-service} 34.11388387878788
+      {country=pt,dc=dc2,region=centro,service=ingestion-service} 4.399506180511869
+  storage writes/s:
+      {} 119.6
+  storage p95 latency (s):
+      {} 0.05624999999999999
+  ....  ingestion, 2-instances: 106.6 req/s total, worst p95 501 ms, 0.0 failed of 2160
+  ....  ingestion speed-up with a second instance in dc2: x1.25
+  PASS  Prometheus sees ingestion traffic per location (dc2 included)
+
+== 2. Horizontal scaling: analytics
+  ok 655, failed 0, 32.4 ok req/s, p50 231 ms, p95 308 ms
+  ok 660, failed 0, 32.6 ok req/s, p50 228 ms, p95 312 ms
+  ok 657, failed 0, 32.6 ok req/s, p50 228 ms, p95 307 ms
+  requests/s per instance:
+      {instance=10.42.0.73:5003} 104.4
+      {instance=10.42.1.29:5003} 0.3999600039996
+  requests/s per location (location:http_requests:rate1m):
+      {country=pt,dc=dc1,region=centro,service=analytics-service} 20.673103147329954
+      {country=pt,dc=dc2,region=centro,service=analytics-service} 0.41818181818181815
+  storage writes/s:
+      {} 0.4
+  storage p95 latency (s):
+      {} 0.005539999999999992
+  ....  analytics, 1-instance: 97.6 req/s total, worst p95 312 ms, 0.0 failed of 1972
+  ok 734, failed 0, 36.4 ok req/s, p50 129 ms, p95 492 ms
+  ok 733, failed 0, 36.2 ok req/s, p50 127 ms, p95 489 ms
+  ok 735, failed 0, 36.4 ok req/s, p50 116 ms, p95 495 ms
+  requests/s per instance:
+      {instance=10.42.0.73:5003} 59.9
+      {instance=10.42.1.29:5003} 52.678928428628545
+  requests/s per location (location:http_requests:rate1m):
+      {country=pt,dc=dc1,region=centro,service=analytics-service} 40.945454545454545
+      {country=pt,dc=dc2,region=centro,service=analytics-service} 6.6723878787878785
+  storage writes/s:
+      {} 0.4
+  storage p95 latency (s):
+      {} 0.00852205882352941
+  ....  analytics, 2-instances: 109.0 req/s total, worst p95 495 ms, 0.0 failed of 2202
+  ....  analytics speed-up with a second instance in dc2: x1.12
+  PASS  Prometheus sees analytics traffic per location (dc2 included)
+
+== 3. Registry growth (fake instances, sizes 0,100,500,2000)
+instances  register/s  lookup p50  lookup p95  /tree ms  all bytes  1 dc bytes  1 rack bytes
+        0           0       1.2ms       2.2ms       5.8       1348           3             3
+RESULT instances=0 register_per_s=0 lookup_p50_ms=1.2 lookup_p95_ms=2.2 tree_ms=5.8 all_bytes=1348 dc_bytes=3 rack_bytes=3
+      100         337       1.3ms       1.9ms       5.7      21231        1019           223
+RESULT instances=100 register_per_s=337 lookup_p50_ms=1.3 lookup_p95_ms=1.9 tree_ms=5.7 all_bytes=21231 dc_bytes=1019 rack_bytes=223
+      500         289       3.4ms      60.1ms       9.0     101095        4219          1023
+RESULT instances=500 register_per_s=289 lookup_p50_ms=3.4 lookup_p95_ms=60.1 tree_ms=9.0 all_bytes=101095 dc_bytes=4219 rack_bytes=1023
+     2000         288       3.6ms      29.4ms      10.5     401715       16866          3432
+RESULT instances=2000 register_per_s=288 lookup_p50_ms=3.6 lookup_p95_ms=29.4 tree_ms=10.5 all_bytes=401715 dc_bytes=16866 rack_bytes=3432
+  cleaned up: all scale-fake-service instances unregistered
+  PASS  location filter: one dc = 16866 bytes vs 401715 bytes unfiltered (4.2%)
+  ....  filtered lookup p95 at the largest size: 29.4 ms
+
+== 4. Monitoring bandwidth by location
+bytes of one full scrape (/metrics):
+    registry      16581 bytes
+    storage        9294 bytes
+    ingestion      7295 bytes
+    analytics      6922 bytes
+federation of every raw series : 403585 bytes (11516 gzip)
+federation of location:* only  : 2883 bytes (391 gzip)
+per-location view (location:instances:count, location:http_requests:rate1m):
+    {country=pt,dc=dc1,region=centro,service=registry-service} 1
+    {country=pt,dc=dc1,region=centro,service=ingestion-service} 1
+    {country=pt,dc=dc1,region=centro,service=storage-service} 1
+    {country=pt,dc=dc1,region=centro,service=analytics-service} 1
+    {country=pt,dc=dc1,region=centro,service=temperature-sensor} 1
+    {country=pt,dc=dc2,region=centro,service=temperature-sensor} 1
+    {country=pt,dc=dc2,region=centro,service=ingestion-service} 1
+    {country=pt,dc=dc2,region=centro,service=analytics-service} 1
+    {country=pt,dc=dc1,region=centro,service=registry-service} 149.19022424242422
+    {country=pt,dc=dc1,region=centro,service=ingestion-service} 12.654545454545454
+    {country=pt,dc=dc1,region=centro,service=storage-service} 90.78303838383836
+    {country=pt,dc=dc1,region=centro,service=analytics-service} 56.27272727272727
+    {country=pt,dc=dc2,region=centro,service=analytics-service} 19.751642091355915
+    {country=pt,dc=dc2,region=centro,service=ingestion-service} 10.909090909090908
+  PASS  per-location federation is 0.7% of the raw federation
+
+== 5. Cleanup
+  ....  k3s: the dc2 pods are part of the normal deployment, nothing to remove
+
+== Summary
+  service     1 inst req/s 2 inst req/s  speed-up  1 inst p95 ms  2 inst p95 ms
+  ingestion           85.3        106.6     1.25x            386            501
+  analytics           97.6        109.0     1.12x            312            495
+  registry: instances=2000 register_per_s=288 lookup_p50_ms=3.6 lookup_p95_ms=29.4 tree_ms=10.5 all_bytes=401715 dc_bytes=16866 rack_bytes=3432
+  monitoring: raw federation 403585 bytes vs per-location aggregates 2883 bytes
+  reading the numbers:
+   - ingestion writes go to ONE SQLite storage: if the speed-up is well below 2, storage is the
+     bottleneck (compare 'storage writes/s' and storage p95 in evidence/k3s/scale/2-ingestion-*)
+   - analytics only reads, so it should scale better until storage reads saturate
+   - the registry is in memory: lookups stay fast, but /services without a filter grows
+     linearly and the health checker pings every instance one by one (O(N) per sweep)
+   - all instances run on one physical host (on k3s: two k3s nodes = two Incus containers
+     on it), so 'dc2' is a logical location: absolute
+     numbers are lower bounds, the trends are what matters
+
+========================================
+Result: 9 passed, 0 failed
+Evidence saved in evidence/k3s/scale/
+========================================

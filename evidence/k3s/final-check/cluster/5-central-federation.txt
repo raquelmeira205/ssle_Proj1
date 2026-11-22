@@ -1,0 +1,8 @@
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=analytics-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=ingestion-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=registry-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=storage-service} 1
+    {cluster=k3s,country=pt,dc=dc1,job=federate-k3s,region=centro,service=temperature-sensor} 1
+    {cluster=k3s,country=pt,dc=dc2,job=federate-k3s,region=centro,service=analytics-service} 1
+    {cluster=k3s,country=pt,dc=dc2,job=federate-k3s,region=centro,service=ingestion-service} 1
+    {cluster=k3s,country=pt,dc=dc2,job=federate-k3s,region=centro,service=temperature-sensor} 1

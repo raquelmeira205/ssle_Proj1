@@ -1,0 +1,7 @@
+=== Attacker attacker1 (3-mitigated) (27.0s) ===
+  Total requests : 300 (OK: 43, Failed/Blocked: 257)
+  Throughput     : 1.59 ok req/s (11.11 total req/s)
+  Latency p50    : 2001.71 ms
+  Latency p95    : 2002.92 ms
+RESULT ok=43 failed=257 p50=2002 p95=2003
+

@@ -1,0 +1,7 @@
+=== Legitimate client during 2-unmitigated attack (20.6s) ===
+  Total requests : 12 (OK: 11, Failed/Blocked: 1)
+  Throughput     : 0.53 ok req/s (0.58 total req/s)
+  Latency p50    : 514.93 ms
+  Latency p95    : 1413.65 ms
+RESULT ok=11 failed=1 p50=515 p95=1414
+

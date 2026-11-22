@@ -1,0 +1,147 @@
+Run started 2026-11-22T13:57:06-05:00 on kali, platform k3s
+
+################################################################################
+ THREAT: Massive denial-of-service (HTTP flood)
+################################################################################
+ Description   : Many requests per second from one or more sources exhaust the service (CPU, worker threads, SQLite reads).
+ Why relevant  : Analytics /stats reads up to 1000 rows from storage on every call; ingestion is the only entry point for sensor data. Saturating them stops the whole pipeline for every location.
+ Exploitation  : Attackers loop on an expensive, unauthenticated endpoint (/stats?limit=1000) with many parallel connections; no credentials needed.
+ Monitoring    : Wazuh: JSON access log, rule 100200 per request, rule 100210 = 15 requests in 10 s from the same srcip. Prometheus: http_requests_total rate, p95 of http_request_duration_seconds, http_requests_in_progress (alerts SSLEHighRequestRate / SSLEHighP95Latency / SSLEHighConcurrentRequests).
+ Action-resp.  : k3s-block (iptables raw/PREROUTING on the node, before kube-proxy) on the agent that saw the flood: DROP of the source IP for 60 s, then automatic unblock.
+################################################################################
+
+== 0. Setup
+  ....  platform k3s, target analytics = http://10.255.255.139:30003/stats?limit=1000, protected by the agent in k3s-master
+  ....  attacker1 = 10.255.255.144
+  ....  attacker2 = 10.255.255.202
+  ....  legit-client = 10.255.255.156
+  PASS  Wazuh agent active on k3s-master
+
+== 1. Baseline: legitimate client alone (15 s)
+=== Baseline (legitimate client only) (15.6s) ===
+  Total requests : 14 (OK: 14, Failed/Blocked: 0)
+  Throughput     : 0.90 ok req/s (0.90 total req/s)
+  Latency p50    : 11.90 ms
+  Latency p95    : 62.40 ms
+RESULT ok=14 failed=0 p50=12 p95=62
+
+  PASS  baseline: every request answered
+
+== 2. Unmitigated attack: 20 workers x 2 attackers, Wazuh agent on k3s-master stopped
+=== Legitimate client during 2-unmitigated attack (20.6s) ===
+  Total requests : 12 (OK: 11, Failed/Blocked: 1)
+  Throughput     : 0.53 ok req/s (0.58 total req/s)
+  Latency p50    : 514.93 ms
+  Latency p95    : 1413.65 ms
+RESULT ok=11 failed=1 p50=515 p95=1414
+
+Prometheus during the 2-unmitigated attack (2026-11-22T13:57:39-05:00)
+  request rate (req/s):
+    {job=ssle-analytics} 38.97333333333333
+  p95 latency (s):
+    {job=ssle-analytics} 2.276531249477693
+  requests in progress:
+    {job=ssle-analytics} 23
+  where (service_info):
+    {country=pt,dc=dc1,id=analytics-service-analytics-dc1-767846b666-8kgkk.k3s-master.rack1.dc1.centro.pt,instance=10.42.0.73:5003,job=ssle-analytics,k8s_node=k3s-master,node=k3s-master,pod=analytics-dc1-767846b666-8kgkk,rack=rack1,region=centro,service=analytics-service} 1
+    {country=pt,dc=dc2,id=analytics-service-analytics-dc2-7c64994f87-b9x9p.k3s-node1.rack1.dc2.centro.pt,instance=10.42.1.29:5003,job=ssle-analytics,k8s_node=k3s-node1,node=k3s-node1,pod=analytics-dc2-7c64994f87-b9x9p,rack=rack1,region=centro,service=analytics-service} 1
+  active alerts:
+    SSLEHighRequestRate              firing   job=ssle-registry    root_cause=-        since 2026-11-22T18:57:33
+    SSLEHighRequestRate              firing   job=ssle-storage     root_cause=-        since 2026-11-22T18:57:33
+    SSLEHighRequestRate              firing   job=ssle-analytics   root_cause=-        since 2026-11-22T18:57:33
+    SSLEHighP95Latency               firing   job=ssle-ingestion   root_cause=-        since 2026-11-22T18:57:33
+    SSLEHighP95Latency               firing   job=ssle-storage     root_cause=-        since 2026-11-22T18:57:33
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-22T18:57:33
+    SSLEHighConcurrentRequests       firing   job=ssle-storage     root_cause=-        since 2026-11-22T18:57:33
+    SSLEHighConcurrentRequests       firing   job=ssle-analytics   root_cause=-        since 2026-11-22T18:57:33
+    SSLERootCauseRequestFlood        firing   job=ssle-storage     root_cause=request-flood since 2026-11-22T18:57:30
+    SSLERootCauseRequestFlood        firing   job=ssle-analytics   root_cause=request-flood since 2026-11-22T18:57:35
+  PASS  Prometheus raised SSLEHighRequestRate during the attack
+  ....  Wazuh agent restarted, waiting 20 s for it to reconnect
+
+== 3. Mitigated attack: same attack with Wazuh detection + active response
+=== Legitimate client during 3-mitigated attack (20.2s) ===
+  Total requests : 20 (OK: 20, Failed/Blocked: 0)
+  Throughput     : 0.99 ok req/s (0.99 total req/s)
+  Latency p50    : 9.13 ms
+  Latency p95    : 16.82 ms
+RESULT ok=20 failed=0 p50=9 p95=17
+
+Prometheus during the 3-mitigated attack (2026-11-22T13:58:32-05:00)
+  request rate (req/s):
+    {job=ssle-analytics} 1.7003901170351106
+  p95 latency (s):
+    {job=ssle-analytics} 0.00952781111111111
+  requests in progress:
+    {job=ssle-analytics} 0
+  where (service_info):
+    {country=pt,dc=dc1,id=analytics-service-analytics-dc1-767846b666-8kgkk.k3s-master.rack1.dc1.centro.pt,instance=10.42.0.73:5003,job=ssle-analytics,k8s_node=k3s-master,node=k3s-master,pod=analytics-dc1-767846b666-8kgkk,rack=rack1,region=centro,service=analytics-service} 1
+    {country=pt,dc=dc2,id=analytics-service-analytics-dc2-7c64994f87-b9x9p.k3s-node1.rack1.dc2.centro.pt,instance=10.42.1.29:5003,job=ssle-analytics,k8s_node=k3s-node1,node=k3s-node1,pod=analytics-dc2-7c64994f87-b9x9p,rack=rack1,region=centro,service=analytics-service} 1
+  active alerts:
+    SSLEHighRequestRate              pending  job=ssle-registry    root_cause=-        since 2026-11-22T18:58:28
+    SSLEHighRequestRate              pending  job=ssle-storage     root_cause=-        since 2026-11-22T18:58:28
+    SSLEHighRequestRate              firing   job=ssle-analytics   root_cause=-        since 2026-11-22T18:58:23
+    SSLEHighP95Latency               firing   job=ssle-analytics   root_cause=-        since 2026-11-22T18:58:23
+    SSLERootCauseRequestFlood        firing   job=ssle-analytics   root_cause=request-flood since 2026-11-22T18:58:25
+
+== 3a. Detection (Wazuh rule 100210)
+  2026-11-22T18:58:20.341+0000  rule 100210 (level 10, fired 1 times)
+      source : srcip=10.255.255.144
+      where  : agent=k3s-node-01.k3s-master.rack1.dc1.centro.pt (10.255.255.139)
+      what   : SSLE DDoS detected: high request rate from 10.255.255.144 against analytics-service (/stats?limit=1000)
+  2026-11-22T18:58:20.382+0000  rule 100210 (level 10, fired 2 times)
+      source : srcip=10.255.255.202
+      what   : SSLE DDoS detected: high request rate from 10.255.255.202 against analytics-service (/stats?limit=1000)
+  2026-11-22T18:58:21.225+0000  rule 100210 (level 10, fired 3 times)
+  2026-11-22T18:58:21.276+0000  rule 100210 (level 10, fired 4 times)
+  PASS  rule 100210 fired for attacker attacker1 (10.255.255.144)
+  PASS  rule 100210 fired for attacker attacker2 (10.255.255.202)
+  PASS  legitimate client 10.255.255.156 was not flagged
+  ....  time from attack start to first alert: 0.8 s
+  PASS  99 access-log events from analytics's agent reached the manager
+  PASS  only the attackers were blocked (no service or pod blocked another)
+
+== 3b. Response (k3s-block (iptables raw/PREROUTING on the node, before kube-proxy), on k3s-master)
+# filter INPUT
+Chain INPUT (policy ACCEPT 1571 packets, 452K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DROP       all  --  *      *       10.255.255.202       0.0.0.0/0           
+    0     0 DROP       all  --  *      *       10.255.255.144       0.0.0.0/0           
+ 2078  545K KUBE-ROUTER-INPUT  all  --  *      *       0.0.0.0/0            0.0.0.0/0            /* kube-router netpol - 4IA2OSFRMVNDXBVV */
+ 1571  452K KUBE-FIREWALL  all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+  399  116K KUBE-PROXY-FIREWALL  all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate NEW /* kubernetes load balancer firewall */
+ 1571  452K KUBE-NODEPORTS  all  --  *      *       0.0.0.0/0            0.0.0.0/0            /* kubernetes health check service ports */
+  399  116K KUBE-EXTERNAL-SERVICES  all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate NEW /* kubernetes externally-visible service portals */
+
+# raw PREROUTING
+Chain PREROUTING (policy ACCEPT 1244 packets, 2565K bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+  124  7088 DROP       all  --  *      *       10.255.255.202       0.0.0.0/0           
+  119  6796 DROP       all  --  *      *       10.255.255.144       0.0.0.0/0           
+  PASS  attacker attacker1 (10.255.255.144) blocked 1.1 s after the attack started
+  PASS  active-responses.log on k3s-master shows the add for 10.255.255.144
+  PASS  attacker attacker2 (10.255.255.202) blocked 1.4 s after the attack started
+  PASS  active-responses.log on k3s-master shows the add for 10.255.255.202
+  PASS  legitimate client 10.255.255.156 is not blocked
+  PASS  legitimate success rate improved: 92% unmitigated -> 100% mitigated
+
+== 4. Recovery: block removed after 60 s (skip with --no-wait)
+  PASS  10.255.255.144 unblocked after the timeout
+  PASS  10.255.255.202 unblocked after the timeout
+  PASS  attacker1 can reach analytics again
+
+== Post-mortem summary
+  legitimate client                     success   p50 (ms)   p95 (ms)
+  1-baseline                               100%         12         62
+  2-unmitigated                             92%        515       1414
+  3-mitigated                              100%          9         17
+  detection (attack start -> first 100210 alert): 0.8 s
+  time to block attacker1 (10.255.255.144): 1.1 s
+  time to block attacker2 (10.255.255.202): 1.4 s
+  false positives (legit client flagged/blocked): no
+  limitation: per-source threshold; a flood spread over many IPs below 15 req/10 s each is not detected by 100210
+
+========================================
+Result: 17 passed, 0 failed
+Evidence saved in evidence/k3s/ddos/
+========================================

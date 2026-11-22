@@ -1,0 +1,6 @@
+    14:02:19.874 (t-2.00s)  10.255.255.139
+    14:02:22.010 (t+0.14s)  no answer
+    14:02:22.275 (t+0.40s)  10.255.255.139
+    answers: 53 total, 0 pointed to the attacker, 1 failed
+EXPOSURE 0.00
+FINAL 10.255.255.139

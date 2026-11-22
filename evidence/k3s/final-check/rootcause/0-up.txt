@@ -1,0 +1,8 @@
+    {instance=10.42.0.74:8000,job=ssle-sensor,k8s_node=k3s-master,pod=sensor-dc1-5674587469-ph28m} 1
+    {instance=10.42.0.72:5050,job=ssle-registry,k8s_node=k3s-master,pod=registry-5ddcf48556-wbwvp} 1
+    {instance=10.42.0.75:5002,job=ssle-storage,k8s_node=k3s-master,pod=storage-55d8b74767-pp2rq} 1
+    {instance=10.42.0.73:5003,job=ssle-analytics,k8s_node=k3s-master,pod=analytics-dc1-767846b666-8kgkk} 1
+    {instance=10.42.1.29:5003,job=ssle-analytics,k8s_node=k3s-node1,pod=analytics-dc2-7c64994f87-b9x9p} 1
+    {instance=10.42.1.28:8000,job=ssle-sensor,k8s_node=k3s-node1,pod=sensor-dc2-7977694bf7-qbcm8} 1
+    {instance=10.42.1.31:5001,job=ssle-ingestion,k8s_node=k3s-node1,pod=ingestion-dc2-b9f875d59-nhrmr} 1
+    {instance=10.42.0.76:5001,job=ssle-ingestion,k8s_node=k3s-master,pod=ingestion-dc1-679b5b468b-m48w6} 1

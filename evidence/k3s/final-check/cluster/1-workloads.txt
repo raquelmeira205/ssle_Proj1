@@ -1,0 +1,28 @@
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES                                     SELECTOR
+deployment.apps/analytics-dc1   1/1     1            1           3d18h   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc1
+deployment.apps/analytics-dc2   1/1     1            1           3d18h   analytics    docker.incus:5000/ssle/analytics:3335d3b   app=analytics,dc=dc2
+deployment.apps/ingestion-dc1   1/1     1            1           3d18h   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc1
+deployment.apps/ingestion-dc2   1/1     1            1           3d18h   ingestion    docker.incus:5000/ssle/ingestion:3335d3b   app=ingestion,dc=dc2
+deployment.apps/prometheus      1/1     1            1           3d18h   prometheus   prom/prometheus:v2.53.0                    app=prometheus
+deployment.apps/registry        1/1     1            1           3d18h   registry     docker.incus:5000/ssle/registry:3335d3b    app=registry,dc=dc1
+deployment.apps/sensor-dc1      1/1     1            1           3d18h   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc1
+deployment.apps/sensor-dc2      1/1     1            1           3d18h   sensor       docker.incus:5000/ssle/sensor:3335d3b      app=sensor,dc=dc2
+deployment.apps/storage         1/1     1            1           3d18h   storage      docker.incus:5000/ssle/storage:3335d3b     app=storage,dc=dc1
+
+NAME                                 READY   STATUS    RESTARTS      AGE     IP           NODE         NOMINATED NODE   READINESS GATES
+pod/analytics-dc1-767846b666-8kgkk   1/1     Running   5 (37m ago)   3d17h   10.42.0.73   k3s-master   <none>           <none>
+pod/analytics-dc2-7c64994f87-b9x9p   1/1     Running   4 (37m ago)   3d17h   10.42.1.29   k3s-node1    <none>           <none>
+pod/ingestion-dc1-679b5b468b-rn4xc   1/1     Running   3 (37m ago)   3d15h   10.42.0.67   k3s-master   <none>           <none>
+pod/ingestion-dc2-b9f875d59-nhrmr    1/1     Running   3 (37m ago)   3d17h   10.42.1.31   k3s-node1    <none>           <none>
+pod/prometheus-7df4755987-wvnc2      1/1     Running   3 (37m ago)   3d17h   10.42.0.68   k3s-master   <none>           <none>
+pod/registry-5ddcf48556-wbwvp        1/1     Running   4 (37m ago)   3d17h   10.42.0.72   k3s-master   <none>           <none>
+pod/sensor-dc1-5674587469-ph28m      1/1     Running   3 (37m ago)   3d17h   10.42.0.74   k3s-master   <none>           <none>
+pod/sensor-dc2-7977694bf7-qbcm8      1/1     Running   3 (37m ago)   3d17h   10.42.1.28   k3s-node1    <none>           <none>
+pod/storage-55d8b74767-pp2rq         1/1     Running   1 (37m ago)   25h     10.42.0.75   k3s-master   <none>           <none>
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE     SELECTOR
+service/analytics    NodePort    10.43.152.105   <none>        5003:30003/TCP   3d18h   app=analytics
+service/ingestion    NodePort    10.43.152.188   <none>        5001:30001/TCP   3d18h   app=ingestion
+service/prometheus   NodePort    10.43.82.105    <none>        9090:30090/TCP   3d18h   app=prometheus
+service/registry     ClusterIP   10.43.117.151   <none>        5050/TCP         3d18h   app=registry
+service/storage      ClusterIP   10.43.29.126    <none>        5002/TCP         3d18h   app=storage

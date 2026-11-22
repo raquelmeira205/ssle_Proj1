@@ -1,0 +1,5 @@
+NAME         STATUS   ROLES           AGE     VERSION        INTERNAL-IP      EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION               CONTAINER-RUNTIME         SSLE.DC   SSLE.RACK
+k3s-master   Ready    control-plane   3d18h   v1.37.2+k3s1   10.255.255.139   <none>        Debian GNU/Linux 13 (trixie)   6.19.14+kali-amd64 (amd64)   containerd://2.3.7-k3s1   dc1       rack1
+k3s-node1    Ready    <none>          3d18h   v1.37.2+k3s1   10.255.255.175   <none>        Debian GNU/Linux 13 (trixie)   6.19.14+kali-amd64 (amd64)   containerd://2.3.7-k3s1   dc2       rack1
+    k3s-master: MemoryPressure=False DiskPressure=False PIDPressure=False Ready=True 
+    k3s-node1: MemoryPressure=False DiskPressure=False PIDPressure=False Ready=True 

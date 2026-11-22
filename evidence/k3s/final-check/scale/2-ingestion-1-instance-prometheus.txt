@@ -1,0 +1,10 @@
+requests/s per instance:
+    {instance=10.42.1.31:5001} 0.6000000000000001
+    {instance=10.42.0.76:5001} 85.30000000000001
+requests/s per location (location:http_requests:rate1m):
+    {country=pt,dc=dc1,region=centro,service=ingestion-service} 15.472734906269185
+    {country=pt,dc=dc2,region=centro,service=ingestion-service} 0.5455026644796934
+storage writes/s:
+    {} 85.5
+storage p95 latency (s):
+    {} 0.03006249999999984

@@ -1,0 +1,1 @@
+1795374142.072790 DNS-server-container ssle-dns-ar[1532]: Restored /etc/dnsmasq-zones/ssle.hosts after hijacking alert

@@ -1,0 +1,288 @@
+Nov 22 19:00:14 mail-container postfix/smtpd[1428]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1467]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1468]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1469]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1470]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1471]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1472]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1473]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1476]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1477]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1478]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:14 mail-container postfix/smtpd[1479]: connect from attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1428]: 048AB3AF614: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1468]: 20DF53ACA64: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1467]: 254033ACA70: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1469]: 265213ACBB6: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1470]: 275743ACBBA: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1472]: 38BAE3ACBBB: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1471]: 39ACF3ACBCC: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1476]: 3AAAC3ACBCD: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1473]: 3B7963ACBD8: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1477]: 4322D3AF7D3: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1478]: 4B3CA3AF7D4: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/smtpd[1479]: 4D9313AF7D5: client=attacker1.incus[10.255.255.144]
+Nov 22 19:00:15 mail-container postfix/cleanup[1434]: 048AB3AF614: message-id=<1795374015624188793@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 048AB3AF614: from=<flood4@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container spamd[721]: spamd: connection from ::1 [::1]:40272 to port 783, fd 5
+Nov 22 19:00:15 mail-container spamd[721]: spamd: setuid to spamd succeeded
+Nov 22 19:00:15 mail-container spamd[721]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:15 mail-container spamd[721]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:15 mail-container spamd[721]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:15 mail-container spamd[721]: spamd: processing message <1795374015624188793@client.test> for spamd:999
+Nov 22 19:00:15 mail-container postfix/cleanup[1482]: 20DF53ACA64: message-id=<1795374015738117847@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 20DF53ACA64: from=<flood2@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/cleanup[1483]: 254033ACA70: message-id=<1795374015754720833@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 254033ACA70: from=<flood1@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/cleanup[1484]: 265213ACBB6: message-id=<1795374015766388140@client.test>
+Nov 22 19:00:15 mail-container postfix/cleanup[1485]: 275743ACBBA: message-id=<1795374015767366078@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 265213ACBB6: from=<flood9@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 275743ACBBA: from=<flood3@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container spamd[724]: spamd: connection from ::1 [::1]:40280 to port 783, fd 5
+Nov 22 19:00:15 mail-container spamd[724]: spamd: setuid to spamd succeeded
+Nov 22 19:00:15 mail-container spamd[724]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:15 mail-container spamd[724]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:15 mail-container spamd[724]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:15 mail-container postfix/cleanup[1486]: 38BAE3ACBBB: message-id=<1795374015838442289@client.test>
+Nov 22 19:00:15 mail-container postfix/cleanup[1489]: 3B7963ACBD8: message-id=<1795374015841575566@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 38BAE3ACBBB: from=<flood5@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 3B7963ACBD8: from=<flood6@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/cleanup[1487]: 39ACF3ACBCC: message-id=<1795374015841852543@client.test>
+Nov 22 19:00:15 mail-container postfix/cleanup[1488]: 3AAAC3ACBCD: message-id=<1795374015844720329@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 39ACF3ACBCC: from=<flood7@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 3AAAC3ACBCD: from=<flood11@evil.test>, size=371, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container spamd[724]: spamd: processing message <1795374015738117847@client.test> for spamd:999
+Nov 22 19:00:15 mail-container postfix/cleanup[1490]: 4322D3AF7D3: message-id=<1795374015880622726@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 4322D3AF7D3: from=<flood10@evil.test>, size=371, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container spamd[721]: spamd: clean message (0.3/5.0) for spamd:999 in 0.3 seconds, 390 bytes.
+Nov 22 19:00:15 mail-container spamd[721]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.3,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40272,mid=<1795374015624188793@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:15 mail-container spamd[721]: spamd: connection from ::1 [::1]:40296 to port 783, fd 5
+Nov 22 19:00:15 mail-container spamd[304]: prefork: child states: BB
+Nov 22 19:00:15 mail-container spamd[721]: spamd: setuid to spamd succeeded
+Nov 22 19:00:15 mail-container spamd[721]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:15 mail-container postfix/cleanup[1491]: 4B3CA3AF7D4: message-id=<1795374015911621495@client.test>
+Nov 22 19:00:15 mail-container postfix/pickup[1174]: E8D513AF911: uid=999 from=<flood4@evil.test>
+Nov 22 19:00:15 mail-container postfix/pipe[1435]: 048AB3AF614: to=<root@mail-container>, relay=spamassassin, delay=1.2, delays=0.95/0/0/0.28, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 048AB3AF614: removed
+Nov 22 19:00:15 mail-container spamd[721]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:15 mail-container spamd[721]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:15 mail-container spamd[721]: spamd: processing message <1795374015754720833@client.test> for spamd:999
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 4B3CA3AF7D4: from=<flood8@evil.test>, size=368, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/cleanup[1434]: E8D513AF911: message-id=<1795374015624188793@client.test>
+Nov 22 19:00:15 mail-container postfix/cleanup[1492]: 4D9313AF7D5: message-id=<1795374015919356358@client.test>
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: E8D513AF911: from=<flood4@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: 4D9313AF7D5: from=<flood12@evil.test>, size=371, nrcpt=1 (queue active)
+Nov 22 19:00:15 mail-container postfix/local[1443]: E8D513AF911: to=<root@mail-container>, relay=local, delay=0.02, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:15 mail-container postfix/qmgr[1175]: E8D513AF911: removed
+Nov 22 19:00:15 mail-container spamd[304]: spamd: server successfully spawned child process, pid 1509
+Nov 22 19:00:15 mail-container spamd[304]: prefork: adjust: 0 idle children less than 1 minimum idle children. Increasing spamd children: 1509 started.
+Nov 22 19:00:15 mail-container spamd[724]: spamd: clean message (0.3/5.0) for spamd:999 in 0.2 seconds, 390 bytes.
+Nov 22 19:00:15 mail-container spamd[724]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.2,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40280,mid=<1795374015738117847@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBB
+Nov 22 19:00:16 mail-container spamd[304]: spamd: server successfully spawned child process, pid 1512
+Nov 22 19:00:16 mail-container spamd[304]: prefork: adjust: 0 idle children less than 1 minimum idle children. Increasing spamd children: 1512 started.
+Nov 22 19:00:16 mail-container spamd[1509]: spamd: connection from ::1 [::1]:40300 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBBB
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 040683AF7E3: uid=999 from=<flood2@evil.test>
+Nov 22 19:00:16 mail-container postfix/pipe[1496]: 20DF53ACA64: to=<root@mail-container>, relay=spamassassin, delay=1.2, delays=0.96/0/0/0.23, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/cleanup[1482]: 040683AF7E3: message-id=<1795374015738117847@client.test>
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: connection from ::1 [::1]:40312 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[1509]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[1509]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 20DF53ACA64: removed
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 040683AF7E3: from=<flood2@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[304]: spamd: server successfully spawned child process, pid 1513
+Nov 22 19:00:16 mail-container spamd[1509]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[1512]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[1509]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[304]: prefork: adjust: 0 idle children less than 1 minimum idle children. Increasing spamd children: 1513 started.
+Nov 22 19:00:16 mail-container postfix/local[1443]: 040683AF7E3: to=<root@mail-container>, relay=local, delay=0.01, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 040683AF7E3: removed
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBBBI
+Nov 22 19:00:16 mail-container spamd[724]: spamd: connection from ::1 [::1]:40314 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: connection from ::1 [::1]:40328 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: processing message <1795374015767366078@client.test> for spamd:999
+Nov 22 19:00:16 mail-container spamd[724]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[724]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[724]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[724]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[1509]: spamd: processing message <1795374015766388140@client.test> for spamd:999
+Nov 22 19:00:16 mail-container spamd[724]: spamd: processing message <1795374015838442289@client.test> for spamd:999
+Nov 22 19:00:16 mail-container spamd[1513]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: processing message <1795374015841575566@client.test> for spamd:999
+Nov 22 19:00:16 mail-container spamd[721]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 390 bytes.
+Nov 22 19:00:16 mail-container spamd[721]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40296,mid=<1795374015754720833@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBBBB
+Nov 22 19:00:16 mail-container spamd[721]: spamd: connection from ::1 [::1]:40344 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[304]: prefork: server reached --max-children setting, consider raising it
+Nov 22 19:00:16 mail-container spamd[721]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[721]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[721]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[721]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 13D953AF614: uid=999 from=<flood1@evil.test>
+Nov 22 19:00:16 mail-container spamd[721]: spamd: processing message <1795374015841852543@client.test> for spamd:999
+Nov 22 19:00:16 mail-container postfix/cleanup[1483]: 13D953AF614: message-id=<1795374015754720833@client.test>
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 13D953AF614: from=<flood1@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/pipe[1498]: 254033ACA70: to=<root@mail-container>, relay=spamassassin, delay=1.2, delays=0.95/0.01/0/0.28, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 254033ACA70: removed
+Nov 22 19:00:16 mail-container postfix/local[1443]: 13D953AF614: to=<root@mail-container>, relay=local, delay=0.01, delays=0/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 13D953AF614: removed
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 390 bytes.
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40312,mid=<1795374015767366078@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container spamd[724]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 390 bytes.
+Nov 22 19:00:16 mail-container spamd[724]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40314,mid=<1795374015838442289@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container postfix/smtpd[1428]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBBBB
+Nov 22 19:00:16 mail-container spamd[304]: prefork: server reached --max-children setting, consider raising it
+Nov 22 19:00:16 mail-container spamd[724]: spamd: connection from ::1 [::1]:40356 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[724]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 24B3A3ACA70: uid=999 from=<flood5@evil.test>
+Nov 22 19:00:16 mail-container postfix/cleanup[1485]: 24B3A3ACA70: message-id=<1795374015838442289@client.test>
+Nov 22 19:00:16 mail-container spamd[724]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[724]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[724]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container postfix/pipe[1435]: 38BAE3ACBBB: to=<root@mail-container>, relay=spamassassin, delay=1.2, delays=0.96/0.07/0/0.2, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 38BAE3ACBBB: removed
+Nov 22 19:00:16 mail-container spamd[724]: spamd: processing message <1795374015844720329@client.test> for spamd:999
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: connection from ::1 [::1]:40370 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBBBB
+Nov 22 19:00:16 mail-container spamd[304]: prefork: server reached --max-children setting, consider raising it
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[1512]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 27F663ACA64: uid=999 from=<flood3@evil.test>
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 24B3A3ACA70: from=<flood5@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/cleanup[1484]: 27F663ACA64: message-id=<1795374015767366078@client.test>
+Nov 22 19:00:16 mail-container postfix/local[1443]: 24B3A3ACA70: to=<root@mail-container>, relay=local, delay=0.02, delays=0.02/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: processing message <1795374015880622726@client.test> for spamd:999
+Nov 22 19:00:16 mail-container postfix/pipe[1502]: 275743ACBBA: to=<root@mail-container>, relay=spamassassin, delay=1.3, delays=0.96/0.01/0/0.34, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 275743ACBBA: removed
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 24B3A3ACA70: removed
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 27F663ACA64: from=<flood3@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/local[1443]: 27F663ACA64: to=<root@mail-container>, relay=local, delay=0.02, delays=0.01/0/0/0.01, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 27F663ACA64: removed
+Nov 22 19:00:16 mail-container spamd[721]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 390 bytes.
+Nov 22 19:00:16 mail-container spamd[721]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40344,mid=<1795374015841852543@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: clean message (0.3/5.0) for spamd:999 in 0.2 seconds, 390 bytes.
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.2,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40328,mid=<1795374015841575566@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 382473ACBBA: uid=999 from=<flood7@evil.test>
+Nov 22 19:00:16 mail-container postfix/pipe[1506]: 3B7963ACBD8: to=<root@mail-container>, relay=spamassassin, delay=1.3, delays=0.96/0.08/0/0.27, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 3B7963ACBD8: removed
+Nov 22 19:00:16 mail-container postfix/cleanup[1486]: 382473ACBBA: message-id=<1795374015841852543@client.test>
+Nov 22 19:00:16 mail-container postfix/pipe[1496]: 39ACF3ACBCC: to=<root@mail-container>, relay=spamassassin, delay=1.3, delays=0.96/0.13/0/0.21, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 39ACF3ACBCC: removed
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 382473ACBBA: from=<flood7@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 38DDD3ACA64: uid=999 from=<flood6@evil.test>
+Nov 22 19:00:16 mail-container postfix/cleanup[1489]: 38DDD3ACA64: message-id=<1795374015841575566@client.test>
+Nov 22 19:00:16 mail-container postfix/local[1443]: 382473ACBBA: to=<root@mail-container>, relay=local, delay=0.03, delays=0.02/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 382473ACBBA: removed
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBBBB
+Nov 22 19:00:16 mail-container spamd[304]: prefork: server reached --max-children setting, consider raising it
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 38DDD3ACA64: from=<flood6@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: connection from ::1 [::1]:40378 to port 783, fd 5
+Nov 22 19:00:16 mail-container postfix/local[1443]: 38DDD3ACA64: to=<root@mail-container>, relay=local, delay=0.01, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[1513]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 38DDD3ACA64: removed
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BBBBB
+Nov 22 19:00:16 mail-container spamd[721]: spamd: connection from ::1 [::1]:40388 to port 783, fd 5
+Nov 22 19:00:16 mail-container spamd[304]: prefork: server reached --max-children setting, consider raising it
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: processing message <1795374015911621495@client.test> for spamd:999
+Nov 22 19:00:16 mail-container postfix/smtpd[1468]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Nov 22 19:00:16 mail-container spamd[721]: spamd: setuid to spamd succeeded
+Nov 22 19:00:16 mail-container spamd[721]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[721]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:16 mail-container spamd[721]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:16 mail-container spamd[721]: spamd: processing message <1795374015919356358@client.test> for spamd:999
+Nov 22 19:00:16 mail-container spamd[724]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 394 bytes.
+Nov 22 19:00:16 mail-container spamd[724]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=394,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40356,mid=<1795374015844720329@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 394 bytes.
+Nov 22 19:00:16 mail-container spamd[1512]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=394,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40370,mid=<1795374015880622726@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container postfix/smtpd[1467]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Nov 22 19:00:16 mail-container postfix/smtpd[1469]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Nov 22 19:00:16 mail-container postfix/smtpd[1470]: disconnect from attacker1.incus[10.255.255.144] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BIBBB
+Nov 22 19:00:16 mail-container spamd[1509]: spamd: clean message (0.3/5.0) for spamd:999 in 0.3 seconds, 390 bytes.
+Nov 22 19:00:16 mail-container spamd[1509]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.3,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40300,mid=<1795374015766388140@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 45C793ACBBA: uid=999 from=<flood10@evil.test>
+Nov 22 19:00:16 mail-container postfix/pipe[1514]: 3AAAC3ACBCD: to=<root@mail-container>, relay=spamassassin, delay=1.4, delays=0.96/0.16/0/0.23, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 3AAAC3ACBCD: removed
+Nov 22 19:00:16 mail-container postfix/pipe[1498]: 4322D3AF7D3: to=<root@mail-container>, relay=spamassassin, delay=1.3, delays=0.96/0.16/0/0.2, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 4322D3AF7D3: removed
+Nov 22 19:00:16 mail-container postfix/cleanup[1488]: 45C793ACBBA: message-id=<1795374015880622726@client.test>
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BIBIB
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 477743ACA70: uid=999 from=<flood11@evil.test>
+Nov 22 19:00:16 mail-container postfix/cleanup[1487]: 477743ACA70: message-id=<1795374015844720329@client.test>
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 45C793ACBBA: from=<flood10@evil.test>, size=740, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 48CC73ACA64: uid=999 from=<flood9@evil.test>
+Nov 22 19:00:16 mail-container postfix/pipe[1500]: 265213ACBB6: to=<root@mail-container>, relay=spamassassin, delay=1.4, delays=0.96/0/0/0.48, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 265213ACBB6: removed
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 477743ACA70: from=<flood11@evil.test>, size=740, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/cleanup[1490]: 48CC73ACA64: message-id=<1795374015766388140@client.test>
+Nov 22 19:00:16 mail-container postfix/local[1443]: 45C793ACBBA: to=<root@mail-container>, relay=local, delay=0.02, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 45C793ACBBA: removed
+Nov 22 19:00:16 mail-container postfix/local[1443]: 477743ACA70: to=<root@mail-container>, relay=local, delay=0.02, delays=0.02/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 477743ACA70: removed
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 48CC73ACA64: from=<flood9@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/local[1443]: 48CC73ACA64: to=<root@mail-container>, relay=local, delay=0.01, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 48CC73ACA64: removed
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BIIIB
+Nov 22 19:00:16 mail-container spamd[304]: prefork: adjust: 3 idle children more than 2 maximum idle children. Decreasing spamd children: 1512 killed.
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BIIKB
+Nov 22 19:00:16 mail-container spamd[304]: spamd: handled cleanup of child pid [1512] due to SIGCHLD: interrupted, signal 2 (0002)
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 390 bytes.
+Nov 22 19:00:16 mail-container spamd[1513]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=390,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40378,mid=<1795374015911621495@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container spamd[721]: spamd: clean message (0.3/5.0) for spamd:999 in 0.1 seconds, 394 bytes.
+Nov 22 19:00:16 mail-container spamd[721]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.1,size=394,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=40388,mid=<1795374015919356358@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BIII
+Nov 22 19:00:16 mail-container spamd[304]: prefork: adjust: 3 idle children more than 2 maximum idle children. Decreasing spamd children: 1513 killed.
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: BIIK
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: IIIK
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 5782F3ACA70: uid=999 from=<flood8@evil.test>
+Nov 22 19:00:16 mail-container spamd[304]: prefork: adjust: 3 idle children more than 2 maximum idle children. Decreasing spamd children: 1509 killed.
+Nov 22 19:00:16 mail-container spamd[304]: spamd: handled cleanup of child pid [1513] due to SIGCHLD: interrupted, signal 2 (0002)
+Nov 22 19:00:16 mail-container postfix/pipe[1520]: 4B3CA3AF7D4: to=<root@mail-container>, relay=spamassassin, delay=1.4, delays=0.96/0.15/0/0.25, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 4B3CA3AF7D4: removed
+Nov 22 19:00:16 mail-container postfix/cleanup[1491]: 5782F3ACA70: message-id=<1795374015911621495@client.test>
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 5782F3ACA70: from=<flood8@evil.test>, size=737, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container spamd[304]: prefork: child states: IIK
+Nov 22 19:00:16 mail-container postfix/local[1443]: 5782F3ACA70: to=<root@mail-container>, relay=local, delay=0.02, delays=0.02/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 5782F3ACA70: removed
+Nov 22 19:00:16 mail-container spamd[304]: spamd: handled cleanup of child pid [1509] due to SIGCHLD: interrupted, signal 2 (0002)
+Nov 22 19:00:16 mail-container postfix/pickup[1174]: 58FF43ACA70: uid=999 from=<flood12@evil.test>
+Nov 22 19:00:16 mail-container postfix/pipe[1435]: 4D9313AF7D5: to=<root@mail-container>, relay=spamassassin, delay=1.4, delays=0.95/0.19/0/0.21, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 4D9313AF7D5: removed
+Nov 22 19:00:16 mail-container postfix/cleanup[1434]: 58FF43ACA70: message-id=<1795374015919356358@client.test>
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 58FF43ACA70: from=<flood12@evil.test>, size=740, nrcpt=1 (queue active)
+Nov 22 19:00:16 mail-container postfix/local[1541]: 58FF43ACA70: to=<root@mail-container>, relay=local, delay=0, delays=0/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:16 mail-container postfix/qmgr[1175]: 58FF43ACA70: removed
+Nov 22 19:00:23 mail-container postfix/smtpd[1428]: connect from legit-client.incus[10.255.255.156]
+Nov 22 19:00:24 mail-container postfix/smtpd[1428]: 492E53ACBBB: client=legit-client.incus[10.255.255.156]
+Nov 22 19:00:24 mail-container postfix/cleanup[1492]: 492E53ACBBB: message-id=<1795374024906599421@client.test>
+Nov 22 19:00:24 mail-container postfix/qmgr[1175]: 492E53ACBBB: from=<alice@client.test>, size=410, nrcpt=1 (queue active)
+Nov 22 19:00:24 mail-container spamd[721]: spamd: connection from ::1 [::1]:43270 to port 783, fd 5
+Nov 22 19:00:24 mail-container spamd[721]: spamd: setuid to spamd succeeded
+Nov 22 19:00:24 mail-container spamd[721]: spamd: creating default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:24 mail-container spamd[721]: config: cannot create user preferences file /home/spamd/.spamassassin/user_prefs: No such file or directory
+Nov 22 19:00:24 mail-container spamd[721]: spamd: failed to create readable default_prefs: /home/spamd/.spamassassin/user_prefs
+Nov 22 19:00:24 mail-container spamd[721]: spamd: processing message <1795374024906599421@client.test> for spamd:999
+Nov 22 19:00:25 mail-container spamd[721]: spamd: clean message (0.3/5.0) for spamd:999 in 0.2 seconds, 433 bytes.
+Nov 22 19:00:25 mail-container spamd[721]: spamd: result: . 0 - ALL_TRUSTED,DKIM_ADSP_NXDOMAIN,NO_DNS_FOR_FROM,TO_MALFORMED scantime=0.2,size=433,user=spamd,uid=999,required_score=5.0,rhost=::1,raddr=::1,rport=43270,mid=<1795374024906599421@client.test>,autolearn=no autolearn_force=no
+Nov 22 19:00:25 mail-container spamd[304]: prefork: child states: II
+Nov 22 19:00:25 mail-container postfix/pickup[1174]: 258953ACA5E: uid=999 from=<alice@client.test>
+Nov 22 19:00:25 mail-container postfix/pipe[1502]: 492E53ACBBB: to=<root@mail-container>, relay=spamassassin, delay=1.2, delays=0.96/0/0/0.2, dsn=2.0.0, status=sent (delivered via spamassassin service)
+Nov 22 19:00:25 mail-container postfix/qmgr[1175]: 492E53ACBBB: removed
+Nov 22 19:00:25 mail-container postfix/cleanup[1482]: 258953ACA5E: message-id=<1795374024906599421@client.test>
+Nov 22 19:00:25 mail-container postfix/qmgr[1175]: 258953ACA5E: from=<alice@client.test>, size=779, nrcpt=1 (queue active)
+Nov 22 19:00:25 mail-container postfix/local[1443]: 258953ACA5E: to=<root@mail-container>, relay=local, delay=0, delays=0/0/0/0, dsn=2.0.0, status=sent (delivered to mailbox)
+Nov 22 19:00:25 mail-container postfix/qmgr[1175]: 258953ACA5E: removed
+Nov 22 19:00:25 mail-container postfix/smtpd[1428]: disconnect from legit-client.incus[10.255.255.156] ehlo=1 mail=1 rcpt=1 data=1 quit=1 commands=5

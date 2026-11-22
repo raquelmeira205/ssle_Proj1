@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke test for the SSLE system (Docker Compose layout: ports published on localhost).
 #
-# Usage:  ./test-system.sh [--failure]
+# Usage:  ./test-system_docker.sh [--failure]
 #   HOST=<ip>   test another machine instead of localhost
 #   DC=<dc>     datacenter used for the location-filter test (default: dc1)
 #   --failure   also stop and restart the storage container (needs `docker compose`,

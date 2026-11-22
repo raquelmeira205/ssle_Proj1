@@ -1,0 +1,4 @@
+    SSLEHighP95Latency               pending  job=ssle-ingestion   root_cause=-        since 2026-11-22T19:03:13
+    SSLEInstanceDown                 pending  job=ssle-storage     root_cause=ssle-storage since 2026-11-22T19:03:15
+    SSLEStorageErrorsSymptom         firing   job=-                root_cause=-        since 2026-11-22T19:03:15
+    SSLERootCauseStorageDown         firing   job=-                root_cause=storage  since 2026-11-22T19:03:15
